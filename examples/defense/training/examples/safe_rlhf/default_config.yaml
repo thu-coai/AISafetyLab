@@ -1,0 +1,47 @@
+# Common Settings
+overwrite_output_dir: true
+bf16: true
+tf32: true
+
+# SFT Settings
+sft_model_name_or_path: /path/to/sft_model
+sft_train_dataset: /path/to/sft_train_dataset.json
+sft_eval_dataset: /path/to/sft_eval_dataset.json
+sft_output_dir: /path/to/sft_output
+sft_num_train_epochs: 3
+sft_per_device_train_batch_size: 16
+sft_gradient_accumulation_steps: 1
+sft_learning_rate: 2e-5
+
+# Reward Model Settings
+reward_model_name_or_path: /path/to/reward_model
+reward_train_dataset: /path/to/reward_train_dataset.json
+reward_eval_dataset: /path/to/reward_eval_dataset.json
+reward_output_dir: /path/to/reward_output
+reward_num_train_epochs: 2
+reward_per_device_train_batch_size: 16
+reward_gradient_accumulation_steps: 1
+reward_learning_rate: 1e-5
+
+# Cost Model Settings
+cost_model_name_or_path: /path/to/cost_model
+cost_train_dataset: /path/to/cost_train_dataset.json
+cost_eval_dataset: /path/to/cost_eval_dataset.json
+cost_output_dir: /path/to/cost_output
+cost_num_train_epochs: 2
+cost_per_device_train_batch_size: 16
+cost_gradient_accumulation_steps: 1
+cost_learning_rate: 1e-5
+
+# PPO-Lag Settings
+ppo_model_name_or_path: /path/to/ppo_actor_model
+ppo_train_dataset: /path/to/ppo_train_dataset.json
+ppo_eval_dataset: /path/to/ppo_eval_dataset.json
+ppo_output_dir: /path/to/ppo_output
+ppo_num_train_epochs: 1
+ppo_per_device_train_batch_size: 16
+ppo_gradient_accumulation_steps: 1
+ppo_learning_rate: 1e-5
+ppo_clip_range_ratio: 0.2       # Added for PPO-specific settings
+ppo_critic_coeff: 1.0           # Weight for critic value loss
+ppo_entropy_coeff: 0.01         # Weight for entropy loss

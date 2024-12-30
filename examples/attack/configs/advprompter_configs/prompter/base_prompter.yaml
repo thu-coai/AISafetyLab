@@ -1,0 +1,9 @@
+llm_params:
+  device: 'cuda:1'
+  freeze: false
+  dtype: float32
+allow_non_ascii: false
+gen_params:
+  do_sample: true
+  temperature: 1.0
+  top_p: 0.9

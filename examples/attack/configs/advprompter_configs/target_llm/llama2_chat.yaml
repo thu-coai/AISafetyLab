@@ -1,0 +1,18 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "llama2-7b-chat"
+  checkpoint: 'meta-llama/Llama-2-7b-chat-hf' # or replace with local DIR
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      # msg: "<s>[INST] <<SYS>>\nThis is a system message.\n<</SYS>>\n\n"
+      msg: "<s>[INST]"
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "[/INST]"
+    - key: target
+      msg: "{target}"  # loaded from context

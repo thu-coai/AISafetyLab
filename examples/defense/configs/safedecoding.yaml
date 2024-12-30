@@ -1,0 +1,11 @@
+defender_type: SafeDecoding
+model: # your path of a safer model
+device: 'cuda:0'
+alpha: 1
+first_m: 5
+top_k: 10
+num_common_tokens: 3
+verbose: False
+do_sample: True
+top_p: 0.9
+max_token_len: 512

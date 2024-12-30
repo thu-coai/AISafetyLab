@@ -1,0 +1,8 @@
+data_path: thu-coai/AISafetyLab_Datasets/harmbench_standard
+model_path: lmsys/vicuna-7b-v1.5
+model_name: vicuna_1.5
+model_device: 'cuda:1'
+template_path: ""
+system_prompt: ""
+mutation_method: zh-CN
+res_save_path: results/multilingual.jsonl

@@ -1,0 +1,39 @@
+# Method
+method: safe_tuning
+deepspeed: ./config/ds_config.json
+# Model hyperparameters
+model_name_or_path: lmsys/vicuna-7b-v1.5
+# Dataset hyperparameters
+dataset:  # your local data path of thu-coai/AISafetyLab_Datasets/safe-tuning
+overwrite_cache: true
+cutoff_len: 1536
+max_length: 1536
+max_input_length: 1536
+max_output_length: 1536
+# Training hyperparameters
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 1
+lr_scheduler_type: cosine
+warmup_steps: 0
+logging_steps: 1
+save_total_limit: 3
+learning_rate: 0.00001
+num_train_epochs: 3
+bf16: true
+plot_loss: true
+adam_beta1: 0.9
+adam_beta2: 0.95
+evaluation_strategy: "no"
+eval_accumulation_steps: 1
+save_strategy: 'epoch'
+save_only_model: true
+report_to: 'tensorboard'
+load_best_model_at_end: false
+remove_unused_columns: false
+half_precision_backend: 'auto'
+gradient_checkpointing: true
+# Logging and saving configuration
+logging_dir: ./log
+save_steps: 1000
+output_dir: ./checkpoints/safe_tuning
+overwrite_output_dir: true

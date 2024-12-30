@@ -1,0 +1,18 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "vicuna-7b-v1.5"  # one of : vicuna-7b-v1.3, vicuna-7b-v1.5, vicuna-13b-v1.5
+  checkpoint: 'lmsys/vicuna-7b-v1.5'  # or replace with local DIR
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      msg: "<s> A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. USER:"
+      # msg: "<s> User:"
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "</s>ASSISTANT:"
+    - key: target
+      msg: "{target}"  # loaded from context

@@ -1,0 +1,5 @@
+defender_type: PPL
+model_name: vicuna_v1.1
+model_path: lmsys/vicuna-7b-v1.5
+threshold: 6753.2783203125
+windows: 10

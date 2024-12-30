@@ -1,0 +1,17 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "llama3-8b-chat"
+  checkpoint: 'meta-llama/Meta-Llama-3-8B-Instruct' # or replace with local DIR
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      msg: "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
+    - key: target
+      msg: "{target}"  # loaded from context

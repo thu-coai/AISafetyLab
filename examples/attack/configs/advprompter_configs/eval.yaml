@@ -1,0 +1,18 @@
+defaults:
+  - base
+  - _self_
+
+mode: eval
+
+eval:
+  batch_size: 8
+  num_trials: 3 # number of sampling performed per iter, evaluate ASR@k (k=num_trials * len(max_new_tokens_list))
+  prompter:
+    max_new_tokens_list:
+      - 30
+      - 50
+  data:
+    suffix_dataset_dir: "${output_dir}/suffix_dataset"
+    dataset_pth_dct:
+      train: "thu-coai/AISafetyLab_Datasets/harmbench_standard"
+      validation: "thu-coai/AISafetyLab_Datasets/harmbench_standard"

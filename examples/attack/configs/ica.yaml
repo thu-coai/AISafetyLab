@@ -1,0 +1,13 @@
+attack_data_path: "thu-coai/AISafetyLab_Datasets/harmbench_standard" 
+target_model_path: "lmsys/vicuna-7b-v1.5"
+target_model_name: "vicuna7bv1.5" # llama-2
+demo_num: 1
+lang: en
+evaluator_type: "pattern" # pattern, harmbench
+evaluator_path: "cais/HarmBench-Llama-2-13b-cls"
+template_path: ""
+template_path: ""
+system_prompt: ""
+device: "cuda:0"
+res_save_path: "./results/ica_vicuna7bv1.5_harmbench_1shot_PatternScore.jsonl"
+log_path: "./logs/ica_vicuna7bv1.5_harmbench_1shot_PatternScore.log"

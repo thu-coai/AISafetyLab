@@ -1,0 +1,16 @@
+data_path: 'thu-coai/AISafetyLab_Datasets/harmbench_standard'
+rewrite_model: 'gpt-3.5-turbo'
+judge_model: 'gpt-3.5-turbo'
+attack_model: 'anthropic.claude-v2'
+iter_max: 20
+max_tokens: 3584
+temperature: 0.7
+round_sleep: 1
+fail_sleep: 1
+retry_times: 3
+save_suffix: 'renellm_attack_example'
+gpt_api_key: 'your_gpt_api_key_here'
+gpt_base_url: 'your_gpt_base_url_here'
+claude_api_key: 'your_anthropic_api_key_here'
+claude_base_url: 'https://api.anthropic.com'
+res_save_path: './results/rene.jsonl'

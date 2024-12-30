@@ -1,0 +1,17 @@
+attack_dataset_path: 'thu-coai/AISafetyLab_Datasets/harmbench_standard'
+subset_slice: 50
+target_model_name_or_path: 'lmsys/vicuna-7b-v1.5'
+rephrase_model_name_or_path: 'gpt-4o-mini'
+rephrase_api_key: 'YOUR_KEY'
+rephrase_base_url: 'https://api.openai.com/v1'
+mutation_rate: 0.01
+word_dict_size: 50
+num_candidates: 64
+num_steps: 100
+ratio_elites: 0.01
+num_points: 5
+crossover_rate: 0.5
+sentence_level_steps: 5
+model_name: "vicuna"
+res_save_path: 'results/autodan_temp.jsonl'
+delete_existing_res: true

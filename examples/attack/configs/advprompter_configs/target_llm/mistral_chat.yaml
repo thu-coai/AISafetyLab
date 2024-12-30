@@ -1,0 +1,18 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "mistral-7b-instruct"
+  checkpoint: 'mistralai/Mistral-7B-Instruct-v0.2' # or replace with local DIR
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      # msg: "<s>[INST] <<SYS>>\nThis is a system message.\n<</SYS>>\n\n"
+      msg: "<s>[INST]"
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "[/INST]"
+    - key: target
+      msg: "{target}"  # loaded from context

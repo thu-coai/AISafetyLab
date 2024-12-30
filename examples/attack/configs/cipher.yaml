@@ -1,0 +1,11 @@
+attack_data_path: thu-coai/AISafetyLab_Datasets/harmbench_standard
+target_model_path: "lmsys/vicuna-7b-v1.5"
+target_model_name: "vicuna_v1.1"
+demo_num: 1
+lang: en
+evaluator_type: "llamaguard3" # pattern, harmbench
+evaluator_model_path: "meta-llama/Llama-Guard-3-8B"
+template_path: ""
+system_prompt: ""
+res_save_path: 'attack/results/cipher_vicuna-7b-v1.5_harmbench_50.jsonl'
+device: "cuda:0"

@@ -1,0 +1,7 @@
+ASR towards Vicuna-7b-v1.5 (Harmbench(50), HarmbenchScorer)
+Paper     Ours     Time (bs=1)
+68.7%     100%     \
+
+ASR towards Vicuna-7b-v1.5 (Harmbench(50), LLamaGuard3Scorer)
+Paper     Ours     Time (bs=1)
+\         98%      \

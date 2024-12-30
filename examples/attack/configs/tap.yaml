@@ -1,0 +1,31 @@
+data_path: thu-coai/AISafetyLab_Datasets/harmbench_standard
+attack_model_name: 'vicuna_v1.1'
+attack_model_path: 'lmsys/vicuna-13b-v1.5'
+target_model_name: 'vicuna_v1.1'
+target_model_path: "lmsys/vicuna-7b-v1.5"
+eval_model_name: 'openai'
+eval_model_path: 'gpt-4o-mini'
+openai_key: "YOUR_KEY"
+openai_url: "https://api.openai.com/v1"
+
+# Evaluator to determine whether the attack was successful
+evaluator_type: "harmbench" # pattern, harmbench, llamaguard3
+evaluator_model_path: "cais/HarmBench-Llama-2-13b-cls" 
+res_save_path: './results/TAP_harmbench_test.jsonl'
+
+# evaluator_type: "llamaguard3" 
+# evaluator_model_path: "meta-llama/Llama-Guard-3-8B"
+# res_save_path: './results/TAP_llamaguard3.jsonl'
+
+tree_width: 10
+tree_depth: 10
+root_num: 1
+branching_factor: 4
+keep_last_n: 3
+max_n_attack_attempts: 5
+
+devices: 'cuda:0'
+
+
+model_path: ""
+template_path: ""

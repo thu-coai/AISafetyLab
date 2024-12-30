@@ -1,0 +1,12 @@
+attack_data_path: 'thu-coai/AISafetyLab_Datasets/harmbench_standard'
+target_model_path: lmsys/vicuna-7b-v1.5
+target_model_name: vicuna_v1.1
+device: "cuda:5"
+lang: en
+evaluator_type: "pattern" # pattern, harmbench
+evaluator_model_path: "cais/HarmBench-Llama-2-13b-cls"
+template_path: ""
+res_save_path: ./results/vicuna_inception_harmbench.jsonl
+layer_num: 5,
+character_num: 5,
+scene: "science fiction"

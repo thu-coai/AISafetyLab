@@ -1,0 +1,26 @@
+defaults:
+  - base_prompter
+  - _self_
+
+llm_params:
+  model_name: "tiny_llama"
+  checkpoint: 'TinyLlama/TinyLlama-1.1B-step-50K-105b'
+  lora_params:
+    warmstart: false
+    lora_checkpoint: null
+    lora_config:
+      r: 8
+      lora_alpha: 16
+      bias: "none"
+      target_modules:
+        - q_proj
+        - v_proj
+        - lm_head
+prompt_manager:
+  prompt_template: 
+    - key: system_message
+      msg: "<s>"
+    - key: hyper_instruct
+      msg: "{instruct}"  # loaded from context
+    - key: suffix
+      msg: "{suffix}"  # loaded from context

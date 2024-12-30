@@ -1,0 +1,26 @@
+defaults:
+  - base_prompter
+  - _self_
+
+llm_params:
+  model_name: "llama2-7b"
+  checkpoint: 'meta-llama/Llama-2-7b-hf' # or replace with local DIR
+  lora_params:
+    warmstart: false
+    lora_checkpoint: "${data.data_dir}/checkpoints/warmstart_v2" # change this path as necessary
+    lora_config:
+      r: 8
+      lora_alpha: 16
+      bias: "none"
+      target_modules:
+        - q_proj
+        - v_proj
+        - lm_head
+prompt_manager:
+  prompt_template: 
+    - key: system_message
+      msg: "<s>"
+    - key: hyper_instruct
+      msg: "{instruct}"  # loaded from context
+    - key: suffix
+      msg: "{suffix}"  # loaded from context

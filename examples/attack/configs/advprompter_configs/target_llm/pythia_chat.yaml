@@ -1,0 +1,17 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "pythia-12b"
+  checkpoint: 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5' # or replace with local DIR
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      msg: "<|prompter|>"
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "<|endoftext|><|assistant|>"
+    - key: target
+      msg: "{target}"  # loaded from context

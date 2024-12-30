@@ -1,0 +1,50 @@
+defaults:
+  - eval
+  - _self_
+
+mode: train
+
+pretrain:
+  enable: false
+  epochs: 20
+  batch_size: 8
+  dataset_key: pretrain
+  dataset_pth: ... # path to csv, should be in the same format as suffix_opt_dataset (i.e. contain column suffix)
+  do_eval_after: true
+
+train:
+  epochs: 10
+  batch_size: 8
+  dataset_key: foo
+  dataset_pth: "thu-coai/AISafetyLab_Datasets/harmbench_standard"
+  suffix_opt_dataset_dir: "${output_dir}/suffix_opt_dataset"
+  do_initial_eval: false
+  eval_every: 2
+  model_save_dir: "${output_dir}/checkpoints"
+  augment_target: true
+  always_save_before_eval: false
+  replay_buffer:
+    num_updates: 8
+    size: 256
+    priority_alpha: 1.5
+    # priority = priority_factor.loss_delta * relu(loss_delta) + priority_factor.jailbreaking * jailbreaking
+    priority_factor:  # note: zero priority are not added to buffer
+      loss_delta: 1.0
+      jailbreaking: 1.0
+  prompter_optim_params:
+    lr: 5e-4
+  q_params:
+    max_new_tokens: 30
+    num_beams: 4
+    repetition_penalty: 1.2
+    top_k: 48 # try to reduce this or increase num_chunks if doesn't fit to memory
+    num_chunks: 1  # process top_k iteratively in chunks, helps reduce memory, should divide top_k
+    lambda_val: 100  # w2 in AutoDAN paper, controls perplexity vs loss tradeoff (50-100 is good)
+    candidates:
+      do_sample: true
+      temperature: 0.6
+      always_include_best: true
+    beams:
+      do_sample: true
+      temperature: 0.6
+      always_include_best: true

@@ -1,0 +1,16 @@
+eval_model_path : 'hubert233/GPTFuzz'
+attack_model_path : 'lmsys/vicuna-7b-v1.5'
+target_model_path : 'lmsys/vicuna-7b-v1.5'
+attack_model_name : 'vicuna_v1.1'
+target_model_name : 'vicuna_v1.1'
+dataset_path : 'thu-coai/AISafetyLab_Datasets/harmbench_standard'
+template_file : "../../aisafetylab/attack/initialization/init_templates.json"
+res_save_path : "results/gptfuzzer_results.jsonl"
+max_jailbreak : 100000
+max_query : 100000
+max_reject : 100000
+max_iteration : 100
+attack_model_generation_config : {"max_new_tokens":512, "do_sample":True, "temperature":0.8}
+target_model_generation_config : {"max_new_tokens":512, "do_sample":True, "temperature":0.8}
+seeds_num : 76
+energy : 5

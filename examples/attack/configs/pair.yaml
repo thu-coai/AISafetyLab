@@ -1,0 +1,24 @@
+data_path: thu-coai/AISafetyLab_Datasets/harmbench_standard
+attack_model_name: 'openai'
+attack_model_path: 'gpt-4o-mini'
+target_model_name: 'openai'
+target_model_path: 'gpt-4o-mini'
+eval_model_name: 'openai'
+eval_model_path: 'gpt-4o-mini'
+openai_key: "YOUR_KEY"
+openai_url: "https://api.openai.com/v1"
+
+attack_max_n_tokens: 500
+max_n_attack_attempts: 3
+attack_temperature: 1
+attack_top_p: 0.9
+target_max_n_tokens: 150
+target_temperature: 1
+target_top_p: 1
+judge_max_n_tokens: 150
+judge_temperature: 1
+n_streams: 5
+keep_last_n: 3
+n_iterations: 3
+devices: 'cuda:0'
+res_save_path: 'results/pair.jsonl'

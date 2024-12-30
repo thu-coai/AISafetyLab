@@ -1,0 +1,18 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "gemma-7b-instruct"
+  checkpoint: 'google/gemma-7b-it' # or replace with local DIR
+  lora_params: null
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      msg: "<bos><start_of_turn>user\n"
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "<end_of_turn>\n<start_of_turn>model\n"
+    - key: target
+      msg: "{target}"  # loaded from context

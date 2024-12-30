@@ -1,0 +1,17 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "tiny_llama"
+  checkpoint: 'TinyLlama/TinyLlama-1.1B-step-50K-105b'
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      msg: "<s>[INST]"
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "[/INST]"
+    - key: target
+      msg: "{target}"  # loaded from context

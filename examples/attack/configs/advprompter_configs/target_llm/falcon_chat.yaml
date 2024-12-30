@@ -1,0 +1,18 @@
+defaults:
+  - base_target_llm
+  - _self_
+
+llm_params:
+  model_name: "falcon-7b-instruct"
+  checkpoint: 'tiiuae/falcon-7b-instruct' # or replace with local DIR
+prompt_manager:
+  prompt_template:
+    - key: system_message
+      # msg: "This is a system prompt. User: "
+      msg: "User: "
+    - key: full_instruct
+      msg: "{full_instruct}"  # loaded from context
+    - key: separator
+      msg: "\n\nAssistant: "
+    - key: target
+      msg: "{target}"  # loaded from context
