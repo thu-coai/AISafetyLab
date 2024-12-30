@@ -14,13 +14,13 @@
 
 AISafetyLab is a comprehensive framework designed for researchers and developers that are interested in AI safety. We cover three core aspects of AI safety: attack, defense and evaluation, which are supported by some common modules such as models, dataset, utils and logging. We have also compiled several safety-related datasets, provided ample examples for running the code, and maintained a continuously updated list of AI safety-related papers. 
 
-**<p align='center'>Please kindly 🌟Star🌟 our repository if you find it helpful!</p>**
+**<p align='center'>Please kindly 🌟star🌟 our repository if you find it helpful!</p>**
 
 
 
 ##  🆕 **What's New?**  <!-- omit in toc -->
 
-- **🎉 `2024/12/30`:** We are excited to officially announce the open-sourcing of AISafetyLab.
+- **🎉 `2024/12/31`:** We are excited to officially announce the open-sourcing of AISafetyLab.
 
 
 ## 📜 Table of Contents  <!-- omit from toc -->
