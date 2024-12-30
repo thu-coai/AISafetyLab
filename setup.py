@@ -48,7 +48,7 @@ setup(
     python_requires=">=3.7",
     keywords=['ai safety', 
              ],
-    license='GNU General Public License v3.0',
+    license='MIT',
     classifiers=[
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3"
