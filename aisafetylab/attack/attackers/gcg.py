@@ -276,6 +276,7 @@ class GCGMultiPromptAttack(object):
             if filter_cand:
                 temp_decoded_str = decoded_str
                 if temp_decoded_str[0] != ' ': temp_decoded_str = ' ' + temp_decoded_str
+                # logger.info(f'temp_decoded_str tokens: {worker.tokenizer.convert_ids_to_tokens(worker.tokenizer(temp_decoded_str, add_special_tokens=False).input_ids)}temp_decoded_str len: {len(worker.tokenizer(temp_decoded_str, add_special_tokens=False).input_ids)}, control_cand tokens: {worker.tokenizer.convert_ids_to_tokens(control_cand[i])}, control_cand len: {len(control_cand[i])}')
                 if decoded_str != curr_control and len(worker.tokenizer(temp_decoded_str, add_special_tokens=False).input_ids) == len(control_cand[i]):
                     # logger.info(f'control len:{len(control_cand[i])}')
                     cands.append(decoded_str)

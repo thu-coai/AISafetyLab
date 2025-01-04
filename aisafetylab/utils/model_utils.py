@@ -422,8 +422,8 @@ def get_embeddings(model, input_ids):
     elif isinstance(model, GPTNeoXForCausalLM):
         return model.base_model.embed_in(input_ids).half()
     else:
-        raise ValueError(f"Unknown model type: {type(model)}")
-
+        # raise ValueError(f"Unknown model type: {type(model)}")
+        return model.model.embed_tokens(input_ids)
 
 def get_nonascii_toks(tokenizer, device="cpu"):
 
@@ -468,7 +468,6 @@ def compute_perplexity(id_seq, likelihood_seq):
     )
 
     return perplexity, perplexity_per_token_masked
-
 
 
 class ReturnStruct:
@@ -598,7 +597,7 @@ class NpEncoder(json.JSONEncoder):
 
         # Fallback to default JSONEncoder behavior
         return super().default(obj)
-    
+
 from peft import LoraConfig, PeftModel, get_peft_model
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
