@@ -27,7 +27,7 @@ import warnings
 from loguru import logger
 
 from aisafetylab.models import LLM
-from aisafetylab.attack.prompt_manager import MergedSeq, Seq, stack_seqs
+from aisafetylab.models import MergedSeq, Seq, stack_seqs
 from aisafetylab.utils import (
     Metrics,
     check_jailbroken,

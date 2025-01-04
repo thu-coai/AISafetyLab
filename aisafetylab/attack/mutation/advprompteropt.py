@@ -4,7 +4,7 @@
 
 import torch
 
-from aisafetylab.attack.prompt_manager import MergedSeq, Seq, EmptySeq
+from aisafetylab.models import MergedSeq, Seq, EmptySeq
 from aisafetylab.utils import apply_repetition_penalty
 from loguru import logger
 from aisafetylab.attack.mutation import BaseMutation
