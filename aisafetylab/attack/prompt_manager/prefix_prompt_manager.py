@@ -255,7 +255,7 @@ class GCGAttackPrompt(object):
 
             self.conv_template.append_message(self.conv_template.roles[0], None)
             toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
-            logger.info(f'prompt: {self.conv_template.get_prompt()}, toks: {self.tokenizer.convert_ids_to_tokens(toks)}')
+            # logger.info(f'prompt: {self.conv_template.get_prompt()}, toks: {self.tokenizer.convert_ids_to_tokens(toks)}')
             self._user_role_slice = slice(None, len(toks))
 
             self.conv_template.update_last_message(f"{self.goal}")
