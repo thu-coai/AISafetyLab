@@ -32,17 +32,18 @@ def chat(model, messages, defenders, **kwargs):
     output_defenders = []
 
     # logger.debug("defenders: ", defenders)
-    for defender in defenders:
-        if isinstance(defender, PreprocessDefender):
-            input_defenders.append(defender)
-        elif isinstance(defender, IntraprocessDefender):
-            if generation_defender is not None:
-                raise ValueError("Only one IntraDefender is supported.")
-            generation_defender = defender
-        elif isinstance(defender, PostprocessDefender):
-            output_defenders.append(defender)
-        else:
-            raise TypeError(f"Unknown defender type: {type(defender)}")
+    if defenders is not None:
+        for defender in defenders:
+            if isinstance(defender, PreprocessDefender):
+                input_defenders.append(defender)
+            elif isinstance(defender, IntraprocessDefender):
+                if generation_defender is not None:
+                    raise ValueError("Only one IntraDefender is supported.")
+                generation_defender = defender
+            elif isinstance(defender, PostprocessDefender):
+                output_defenders.append(defender)
+            else:
+                raise TypeError(f"Unknown defender type: {type(defender)}")
 
     # Stage 1: Preprocess Defenders
     for defender in input_defenders:

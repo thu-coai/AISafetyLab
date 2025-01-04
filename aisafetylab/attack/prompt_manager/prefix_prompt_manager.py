@@ -1,6 +1,7 @@
 import torch
 from loguru import logger
 from aisafetylab.attack.feedback import GradientFeedback, LogitsFeedback, LossFeedback
+from aisafetylab.evaluation.scorers.pattern_scorer import PatternScorer
 
 class PrefixPromptManager:
     def __init__(self, *, tokenizer, conv_template, instruction, target, adv_string):
@@ -181,6 +182,30 @@ class GCGAttackPrompt(object):
         self.gradient_feedbacker = GradientFeedback()
         self.logits_feedbacker = LogitsFeedback()
         self.loss_feedbacker = LossFeedback()
+        
+    def get_real_end(self, toks):
+        for k in range(len(toks)-1, len(toks)-5, -1):
+            if toks[k] == self.tokenizer.eos_token_id:
+                return k
+        return len(toks)
+    
+    def fix_ids(self, ids):
+        # check if there are multiple bos tokens or eos tokens
+        # if so, remove all but the first bos token and all but the last eos token
+        new_start = 0
+        new_end = len(ids)
+        for i in range(1, len(ids)):
+            if ids[i] == self.tokenizer.bos_token_id:
+                new_start = i
+            else:
+                break
+        for i in range(len(ids)-1, -1, -1):
+            if ids[i] == self.tokenizer.eos_token_id:
+                new_end = i + 1
+            else:
+                break
+        
+        return ids[new_start:new_end]
 
     def _update_ids(self):
 
@@ -190,30 +215,38 @@ class GCGAttackPrompt(object):
         encoding = self.tokenizer(prompt)
         toks = encoding.input_ids
 
-        if self.conv_template.name == 'llama-2':
+        if True:
             self.conv_template.messages = []
 
             self.conv_template.append_message(self.conv_template.roles[0], None)
-            toks = self.tokenizer(self.conv_template.get_prompt()).input_ids
+            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
             self._user_role_slice = slice(None, len(toks))
 
             self.conv_template.update_last_message(f"{self.goal}")
-            toks = self.tokenizer(self.conv_template.get_prompt()).input_ids
-            self._goal_slice = slice(self._user_role_slice.stop, max(self._user_role_slice.stop, len(toks)))
+            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            self._goal_slice = slice(self._user_role_slice.stop, max(self._user_role_slice.stop, self.get_real_end(toks)))
 
-            separator = ' ' if self.goal else ''
+            separator = ' ' if self.goal and self.control[0] != ' ' else ''
             self.conv_template.update_last_message(f"{self.goal}{separator}{self.control}")
-            toks = self.tokenizer(self.conv_template.get_prompt()).input_ids
-            self._control_slice = slice(self._goal_slice.stop, len(toks))
+            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            self._control_slice = slice(self._goal_slice.stop, self.get_real_end(toks))
+            # logger.info(f'control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, len control_slice: {len(toks[self._control_slice])}')
 
             self.conv_template.append_message(self.conv_template.roles[1], None)
-            toks = self.tokenizer(self.conv_template.get_prompt()).input_ids
+            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
             self._assistant_role_slice = slice(self._control_slice.stop, len(toks))
 
             self.conv_template.update_last_message(f"{self.target}")
-            toks = self.tokenizer(self.conv_template.get_prompt()).input_ids
-            self._target_slice = slice(self._assistant_role_slice.stop, len(toks)-2)
-            self._loss_slice = slice(self._assistant_role_slice.stop-1, len(toks)-3)
+            # logger.debug(f'prompt: {self.conv_template.get_prompt()}')
+            # logger.debug(f'tokenizer: {self.tokenizer}')
+            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            
+            target_end_pos = self.get_real_end(toks)
+            
+            self._target_slice = slice(self._assistant_role_slice.stop, target_end_pos)
+            self._loss_slice = slice(self._assistant_role_slice.stop-1, target_end_pos - 1)
+            
+            # logger.debug(f'toks: {self.tokenizer.convert_ids_to_tokens(toks)}, user_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._user_role_slice])}, goal_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._goal_slice])}, control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, assistant_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._assistant_role_slice])}')
 
         else:
             python_tokenizer = False or self.conv_template.name == 'oasst_pythia'
@@ -287,7 +320,7 @@ class GCGAttackPrompt(object):
             gen_config.max_new_tokens = 16
         
         if gen_config.max_new_tokens > 32:
-            print('WARNING: max_new_tokens > 32 may cause testing to slow down.')
+            logger.warning('WARNING: max_new_tokens > 32 may cause testing to slow down.')
         input_ids = self.input_ids[:self._assistant_role_slice.stop].to(model.device).unsqueeze(0)
         attn_masks = torch.ones_like(input_ids).to(model.device)
         output_ids = model.generate(input_ids, 
@@ -305,8 +338,10 @@ class GCGAttackPrompt(object):
             gen_config = model.generation_config
             gen_config.max_new_tokens = self.test_new_toks
         gen_str = self.generate_str(model, gen_config).strip()
-        print(gen_str)
-        jailbroken = not any([prefix in gen_str for prefix in self.test_prefixes])
+        input_prompt = self.tokenizer.decode(self.input_ids[:self._assistant_role_slice.stop], clean_up_tokenization_spaces=False)
+        logger.info(f'Input: {input_prompt}\nOutput: {gen_str}')
+        # jailbroken = not any([prefix in gen_str for prefix in self.test_prefixes])
+        jailbroken = PatternScorer().score(query=None, response=gen_str)['score']
         em = self.target in gen_str
         return jailbroken, int(em)
 
@@ -356,7 +391,7 @@ class GCGAttackPrompt(object):
     
     @property
     def assistant_str(self):
-        return self.tokenizer.decode(self.input_ids[self._assistant_role_slice]).strip()
+        return self.tokenizer.decode(self.input_ids[self._assistant_role_slice], clean_up_tokenization_spaces=False).strip()
     
     @property
     def assistant_toks(self):
@@ -364,7 +399,7 @@ class GCGAttackPrompt(object):
 
     @property
     def goal_str(self):
-        return self.tokenizer.decode(self.input_ids[self._goal_slice]).strip()
+        return self.tokenizer.decode(self.input_ids[self._goal_slice], clean_up_tokenization_spaces=False).strip()
 
     @goal_str.setter
     def goal_str(self, goal):
@@ -377,7 +412,7 @@ class GCGAttackPrompt(object):
     
     @property
     def target_str(self):
-        return self.tokenizer.decode(self.input_ids[self._target_slice]).strip()
+        return self.tokenizer.decode(self.input_ids[self._target_slice], clean_up_tokenization_spaces=False).strip()
     
     @target_str.setter
     def target_str(self, target):
@@ -390,7 +425,7 @@ class GCGAttackPrompt(object):
     
     @property
     def control_str(self):
-        return self.tokenizer.decode(self.input_ids[self._control_slice]).strip()
+        return self.tokenizer.decode(self.input_ids[self._control_slice], clean_up_tokenization_spaces=False).strip()
     
     @control_str.setter
     def control_str(self, control):
@@ -403,12 +438,12 @@ class GCGAttackPrompt(object):
     
     @control_toks.setter
     def control_toks(self, control_toks):
-        self.control = self.tokenizer.decode(control_toks)
+        self.control = self.tokenizer.decode(control_toks, clean_up_tokenization_spaces=False)
         self._update_ids()
     
     @property
     def prompt(self):
-        return self.tokenizer.decode(self.input_ids[self._goal_slice.start:self._control_slice.stop])
+        return self.tokenizer.decode(self.input_ids[self._goal_slice.start:self._control_slice.stop], clean_up_tokenization_spaces=False)
     
     @property
     def input_toks(self):
@@ -416,11 +451,11 @@ class GCGAttackPrompt(object):
     
     @property
     def input_str(self):
-        return self.tokenizer.decode(self.input_ids)
+        return self.tokenizer.decode(self.input_ids, clean_up_tokenization_spaces=False)
     
     @property
     def eval_str(self):
-        return self.tokenizer.decode(self.input_ids[:self._assistant_role_slice.stop]).replace('<s>','').replace('</s>','')
+        return self.tokenizer.decode(self.input_ids[:self._assistant_role_slice.stop], clean_up_tokenization_spaces=False).replace('<s>','').replace('</s>','')
 
 
 from copy import deepcopy
@@ -474,7 +509,7 @@ class ModelWorker(object):
             args=(self.model, self.tasks, self.results)
         )
         self.process.start()
-        print(f"Started worker {self.process.pid} for model {self.model.name_or_path}")
+        logger.info(f"Started worker {self.process.pid} for model {self.model.name_or_path}")
         return self
     
     def stop(self):

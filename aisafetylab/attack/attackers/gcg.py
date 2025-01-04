@@ -170,6 +170,7 @@ class GCGPromptManager(object):
 
         if not allow_non_ascii:
             grad[:, self._nonascii_toks.to(grad.device)] = np.inf
+        # logger.info(f'control_toks:{self.control_toks}')
         return self.gradient_substituter.sample_control(
             control_toks=self.control_toks,
             grad=grad,
@@ -269,9 +270,12 @@ class GCGMultiPromptAttack(object):
         cands, count = [], 0
         worker = self.workers[worker_index]
         for i in range(control_cand.shape[0]):
-            decoded_str = worker.tokenizer.decode(control_cand[i], skip_special_tokens=True)
+            decoded_str = worker.tokenizer.decode(control_cand[i], skip_special_tokens=True, clean_up_tokenization_spaces=False)
             if filter_cand:
-                if decoded_str != curr_control and len(worker.tokenizer(decoded_str, add_special_tokens=False).input_ids) == len(control_cand[i]):
+                temp_decoded_str = decoded_str
+                if temp_decoded_str[0] != ' ': temp_decoded_str = ' ' + temp_decoded_str
+                if decoded_str != curr_control and len(worker.tokenizer(temp_decoded_str, add_special_tokens=False).input_ids) == len(control_cand[i]):
+                    # logger.info(f'control len:{len(control_cand[i])}')
                     cands.append(decoded_str)
                 else:
                     count += 1
@@ -280,7 +284,7 @@ class GCGMultiPromptAttack(object):
                 
         if filter_cand:
             cands = cands + [cands[-1]] * (len(control_cand) - len(cands))
-            # logger.info(f"Warning: {round(count / len(control_cand), 2)} control candidates were not valid")
+            # logger.info(f"Warning: {count} / {len(control_cand)} control candidates were not valid")
         return cands
 
     def step(self, 
@@ -333,7 +337,7 @@ class GCGMultiPromptAttack(object):
             for j, cand in enumerate(control_cands):
                 # Looping through the prompts at this level is less elegant, but
                 # we can manage VRAM better this way
-                progress = tqdm(range(len(self.prompts[0])), total=len(self.prompts[0])) if verbose else enumerate(self.prompts[0])
+                progress = range(len(self.prompts[0])) if verbose else enumerate(self.prompts[0])
                 for i in progress:
                     for k, worker in enumerate(self.workers):
                         worker(self.prompts[k][i], "logits", worker.model, cand, return_ids=True)
@@ -349,17 +353,17 @@ class GCGMultiPromptAttack(object):
                         ])
                     del logits, ids ; gc.collect()
                     
-                    if verbose:
-                        progress.set_description(f"loss={loss[j*batch_size:(j+1)*batch_size].min().item()/(i+1):.4f}")
+                    # if verbose:
+                    #     progress.set_description(f"loss={loss[j*batch_size:(j+1)*batch_size].min().item()/(i+1):.4f}")
 
             min_idx = loss.argmin()
             model_idx = min_idx // batch_size
             batch_idx = min_idx % batch_size
             next_control, cand_loss = control_cands[model_idx][batch_idx], loss[min_idx]
-        
+            
         del control_cands, loss ; gc.collect()
-        logger.info('Current length:'+ str( len(self.workers[0].tokenizer(next_control).input_ids[1:])))
-        logger.info(next_control)
+        
+        # logger.info(next_control)
 
         return next_control, cand_loss.item() / len(self.prompts[0]) / len(self.workers)
     
@@ -411,7 +415,7 @@ class GCGMultiPromptAttack(object):
 
         for i in range(n_steps):
             
-            if stop_on_success:
+            if stop_on_success and (i + 1) % test_steps == 0:
                 model_tests_jb, model_tests_mb, _ = self.test(self.workers, self.prompts)
                 if all(all(tests for tests in model_test) for model_test in model_tests_jb):
                     break
@@ -429,26 +433,33 @@ class GCGMultiPromptAttack(object):
                 filter_cand=filter_cand,
                 verbose=verbose
             )
+            # logger.info(f'returned control: {control}, returned control length:'+ str( len(self.workers[0].tokenizer(control).input_ids[1:])))
             runtime = time.time() - start
-            keep_control = True if not anneal else P(prev_loss, loss, i+anneal_from)
-            if keep_control:
+            # keep_control = True if not anneal else P(prev_loss, loss, i+anneal_from)
+            # if keep_control:
+            #     self.control_str = control
+            if loss < best_loss:
                 self.control_str = control
+            temp_control_str = " " + self.control_str if self.control_str[0] != " " else self.control_str
+            logger.info(f'Current control: {self.control_str}, length: {len(self.workers[0].tokenizer.tokenize(temp_control_str))}')
             
             prev_loss = loss
             if loss < best_loss:
                 best_loss = loss
                 best_control = control
-            logger.info('Current Loss:'+str(loss)+ 'Best Loss:'+str(best_loss))
+            logger.info(f'Step {i + 1} / {n_steps}, current Loss: {str(loss)}, best Loss: {str(best_loss)}')
+            # logger.info(f'self.control_str:{self.control_str}, control:{control}')
+            # if self.logfile is not None and (i+1+anneal_from) % test_steps == 0:
+            #     last_control = self.control_str
+            #     self.control_str = best_control # setter, updates prompt managers
+            #     # every worker corresponds to a prompt manager, sharing same goals and targets but may targeting at different models. this setter would make sure that all prompt managers are updated with the same best control string
 
-            if self.logfile is not None and (i+1+anneal_from) % test_steps == 0:
-                last_control = self.control_str
-                self.control_str = best_control # setter, updates prompt managers
-                # every worker corresponds to a prompt manager, sharing same goals and targets but may targeting at different models. this setter would make sure that all prompt managers are updated with the same best control string
+            #     model_tests = self.test_all() # [worker.results.get() for worker in self.workers]
+            #     self.log(i+1+anneal_from, n_steps+anneal_from, self.control_str, best_loss, runtime, model_tests, verbose=verbose)
 
-                model_tests = self.test_all() # [worker.results.get() for worker in self.workers]
-                self.log(i+1+anneal_from, n_steps+anneal_from, self.control_str, best_loss, runtime, model_tests, verbose=verbose)
-
-                self.control_str = last_control
+            #     self.control_str = last_control
+                
+            # logger.info(f'New control: {self.control_str}, New control length: {str( len(self.workers[0].tokenizer(self.control_str).input_ids[1:]))}, New control toks: {self.control_toks}, New control toks length: {len(self.control_toks[0])}')
 
         return self.control_str, loss, steps
 
@@ -526,18 +537,18 @@ class GCGMultiPromptAttack(object):
         with open(self.logfile, 'w') as f:
             json.dump(log, f, indent=4, cls=NpEncoder)
 
-        if verbose:
-            output_str = ''
-            for i, tag in enumerate(['id_id', 'id_od', 'od_id', 'od_od']):
-                if total_tests[i] > 0:
-                    output_str += f"({tag}) | Passed {n_passed[i]:>3}/{total_tests[i]:<3} | EM {n_em[i]:>3}/{total_tests[i]:<3} | Loss {n_loss[i]:.4f}\n"
-            logger.info((
-                f"\n====================================================\n"
-                f"Step {step_num:>4}/{n_steps:>4} ({runtime:.4} s)\n"
-                f"{output_str}"
-                f"control='{control}'\n"
-                f"====================================================\n"
-            ))
+        # if verbose:
+        #     output_str = ''
+        #     for i, tag in enumerate(['id_id', 'id_od', 'od_id', 'od_od']):
+        #         if total_tests[i] > 0:
+        #             output_str += f"({tag}) | Passed {n_passed[i]:>3}/{total_tests[i]:<3} | EM {n_em[i]:>3}/{total_tests[i]:<3} | Loss {n_loss[i]:.4f}\n"
+        #     logger.info((
+        #         f"\n====================================================\n"
+        #         f"Step {step_num:>4}/{n_steps:>4} ({runtime:.4} s)\n"
+        #         f"{output_str}"
+        #         f"control='{control}'\n"
+        #         f"====================================================\n"
+        #     ))
 class ProgressiveMultiPromptAttack(object):
     """A class used to manage multiple progressive prompt-based attacks."""
     def __init__(self, 
@@ -954,7 +965,6 @@ class IndividualPromptAttack(object):
         control_list = []
         step_list = []
         for i in range(len(self.goals)):
-            logger.info(f"Goal {i+1}/{len(self.goals)}")
             
             attack = self.managers['MPA'](
                 self.goals[i:i+1], 
@@ -1052,10 +1062,10 @@ class GCGInit():
         self.config = config
         train_goals, train_targets, test_goals, test_targets = self.get_goals_and_targets(self.config)
 
-        process_fn = lambda s: s.replace('Sure, h', 'H')
-        process_fn2 = lambda s: s.replace("Sure, here is", "Sure, here's")
-        train_targets = [process_fn(t) if np.random.random() < 0.5 else process_fn2(t) for t in train_targets]
-        test_targets = [process_fn(t) if np.random.random() < 0.5 else process_fn2(t) for t in test_targets]
+        # process_fn = lambda s: s.replace('Sure, h', 'H')
+        # process_fn2 = lambda s: s.replace("Sure, here is", "Sure, here's")
+        # train_targets = [process_fn(t) if np.random.random() < 0.5 else process_fn2(t) for t in train_targets]
+        # test_targets = [process_fn(t) if np.random.random() < 0.5 else process_fn2(t) for t in test_targets]
 
         workers, test_workers = self.get_workers(self.config)
         
@@ -1122,6 +1132,7 @@ class GCGInit():
         logger.info('Loaded {} test goals'.format(len(test_goals)))
 
         return train_goals, train_targets, test_goals, test_targets
+    
     def get_workers(self, params, eval=False):
         tokenizers = []
         for i in range(len(self.config.tokenizer_paths)):
@@ -1190,6 +1201,7 @@ class GCGEvaluator:
         is_success = self.scorer.score(response)['score']
 
         return is_success
+    
 class GCGMainManager(BaseAttackManager):
     """
     A class used to manage and execute GCG attacks.
@@ -1449,13 +1461,13 @@ class GCGMainManager(BaseAttackManager):
                 step=step,
             ))
         return results
+    
     def mutate(self, prompt:str, target:str="Sure, here's"):
         self.config.train_goals = [prompt]
         self.config.train_targets = [target]
         self.config.test_goals = []
         self.config.test_targets = []
         self.config.test_data = None
-        self.config.test_steps = 10
 
         self.attacker = IndividualPromptAttack(
                 self.config.train_goals,
@@ -1481,6 +1493,7 @@ class GCGMainManager(BaseAttackManager):
         train_goals = self.config.train_goals
         train_targets = self.config.train_targets
         for example_idx, (goal, target) in enumerate(zip(train_goals, train_targets)):
+            logger.info(f"Attack Sample {example_idx+1} / {len(train_goals)}.\nGoal: {goal}\nTarget: {target}")
             final_query = self.mutate(prompt=goal, target=target)
             ## original generation: using model.chat()
             # response = self.target_model.chat(final_query)
@@ -1494,7 +1507,8 @@ class GCGMainManager(BaseAttackManager):
                     final_query=final_query,
                     response=response,
                     judge=judge,
-                )
+                ),
+                save=True
             )
 
 

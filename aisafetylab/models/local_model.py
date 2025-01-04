@@ -12,7 +12,7 @@ from contextlib import nullcontext
 import torch
 import torch.nn as nn
 import gc
-from aisafetylab.attack.prompt_manager import Seq, MergedSeq, msg_to_seq
+# from aisafetylab.attack.prompt_manager.sequence import Seq, MergedSeq, msg_to_seq
 from aisafetylab.utils import (
     ReturnStruct,
     autocast_decorator,
