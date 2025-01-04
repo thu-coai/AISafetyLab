@@ -38,7 +38,7 @@ from aisafetylab.utils import (
 from aisafetylab.dataset import get_dataloader
 from aisafetylab.attack.mutation import AdvPrompterOpt, evaluate_prompt
 
-setproctitle.setproctitle("advprompter-train")
+# setproctitle.setproctitle("advprompter-train")
 def collate_fn(list_of_data):
     (
         instruct_batch,
