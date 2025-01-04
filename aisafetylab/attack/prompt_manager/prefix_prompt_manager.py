@@ -317,11 +317,13 @@ class GCGAttackPrompt(object):
     def generate(self, model, gen_config=None):
         if gen_config is None:
             gen_config = model.generation_config
-            gen_config.max_new_tokens = 16
+            gen_config.do_sample = False
+            gen_config.max_new_tokens = 32
         
         if gen_config.max_new_tokens > 32:
             logger.warning('WARNING: max_new_tokens > 32 may cause testing to slow down.')
         input_ids = self.input_ids[:self._assistant_role_slice.stop].to(model.device).unsqueeze(0)
+        # logger.info(f'gen_config: {gen_config.__dict__}')
         attn_masks = torch.ones_like(input_ids).to(model.device)
         output_ids = model.generate(input_ids, 
                                     attention_mask=attn_masks, 
@@ -336,7 +338,10 @@ class GCGAttackPrompt(object):
     def test(self, model, gen_config=None):
         if gen_config is None:
             gen_config = model.generation_config
-            gen_config.max_new_tokens = self.test_new_toks
+            # gen_config.max_new_tokens = self.test_new_toks
+            gen_config.max_new_tokens = 32
+            gen_config.do_sample = False
+        
         gen_str = self.generate_str(model, gen_config).strip()
         input_prompt = self.tokenizer.decode(self.input_ids[:self._assistant_role_slice.stop], clean_up_tokenization_spaces=False)
         logger.info(f'Input: {input_prompt}\nOutput: {gen_str}')
