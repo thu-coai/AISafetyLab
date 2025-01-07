@@ -46,10 +46,13 @@ class AttackDataset:
                 'Please make sure the path is a valid local file path or a huggingface dataset path. For local files, we support the following types: json, jsonl, csv, xlsx, parquet. For huggingface datasets, we now only support the datasets in the "thu-coai/AISafetyLab_Datasets" repository. Please open an issue if you want to use other datasets.'
             )
 
-        logger.info(f'subset slice:{subset_slice}')
+        # logger.info(f'subset slice:{subset_slice}')
         if subset_slice is not None:
             if isinstance(subset_slice, int):
                 self.data = self.data[:subset_slice]
+            elif isinstance(subset_slice, list):
+                _slice = slice(*subset_slice)
+                self.data = self.data[_slice]
             else:
                 self.data = self.data[subset_slice]
 

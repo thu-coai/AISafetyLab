@@ -17,7 +17,9 @@ import time
 import numpy as np
 from tqdm import tqdm
 import gc
+import inspect
 import torch
+import torch.autograd.profiler as profiler
 import math
 import random
 from transformers import AutoTokenizer
@@ -29,6 +31,19 @@ from aisafetylab.utils import get_nonascii_toks, NpEncoder
 from aisafetylab.attack.attackers import BaseAttackManager
 from aisafetylab.evaluation.scorers import PatternScorer
 from aisafetylab.defense.inference_defense import chat
+
+def find_names(obj):
+    frame = inspect.currentframe()
+    for frame in iter(lambda: frame.f_back, None):
+        frame.f_locals
+    obj_names = []
+    for referrer in gc.get_referrers(obj):
+        if isinstance(referrer, dict):
+            for k, v in referrer.items():
+                if k != 'obj':
+                    if v is obj:
+                        obj_names.append(k)
+    return obj_names
 
 class GCGPromptManager(object):
     """A class used to manage the prompt during optimization."""
@@ -418,6 +433,8 @@ class GCGMultiPromptAttack(object):
 
         for i in range(n_steps):
             
+            # logger.debug(f"memory allocated: {torch.cuda.memory_allocated(device='cuda:0') / 1024 ** 3} GB, max memory allocated: {torch.cuda.max_memory_allocated(device='cuda:0') / 1024 ** 3} GB, max memory reserved: {torch.cuda.max_memory_reserved(device='cuda:0') / 1024 ** 3} GB")
+            
             if stop_on_success and (i + 1) % test_steps == 0:
                 model_tests_jb, model_tests_mb, _ = self.test(self.workers, self.prompts)
                 if all(all(tests for tests in model_test) for model_test in model_tests_jb):
@@ -451,6 +468,7 @@ class GCGMultiPromptAttack(object):
                 best_loss = loss
                 best_control = control
             logger.info(f'Step {i + 1} / {n_steps}, current Loss: {str(loss)}, best Loss: {str(best_loss)}')
+            
             # logger.info(f'self.control_str:{self.control_str}, control:{control}')
             # if self.logfile is not None and (i+1+anneal_from) % test_steps == 0:
             #     last_control = self.control_str
@@ -1342,8 +1360,9 @@ class GCGMainManager(BaseAttackManager):
                 temp = 1,
                 filter_cand = True,
                 gbda_deterministic = True,
+                delete_existing_res=True,
                 ):
-        super().__init__(res_save_path=res_save_path, delete_existing_res=True)
+        super().__init__(res_save_path=res_save_path, delete_existing_res=delete_existing_res)
         if isinstance(devices, str):
             devices = [devices]
         if isinstance(tokenizer_paths, str):
@@ -1514,8 +1533,9 @@ class GCGMainManager(BaseAttackManager):
         self.target_conv_template = self.config.workers[0].conv_template
         train_goals = self.config.train_goals
         train_targets = self.config.train_targets
-        for example_idx, (goal, target) in enumerate(zip(train_goals, train_targets)):
-            logger.info(f"Attack Sample {example_idx+1} / {len(train_goals)}.\nGoal: {goal}\nTarget: {target}")
+        for _example_idx, (goal, target) in enumerate(zip(train_goals, train_targets)):
+            example_idx = _example_idx + self.config.train_data_offset
+            logger.info(f"Attack Sample {example_idx+1} / {len(train_goals) + self.config.train_data_offset}.\nGoal: {goal}\nTarget: {target}")
             attack_res = self.mutate(prompt=goal, target=target, shutdown_workers=False, return_dict=True)
             final_query = attack_res['final_query']
             # final_query = goal
@@ -1550,6 +1570,22 @@ class GCGMainManager(BaseAttackManager):
                 ),
                 save=True
             )
+            
+            # if True:
+            #     tot_size = 0
+            #     for obj in gc.get_objects():
+            #         try:
+            #             if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+            #                 if obj.is_cuda:
+            #                     logger.debug(find_names(obj), obj.size())
+            #                     tot_size += obj.numel() * 2
+            #         except: pass
+            #     logger.debug(f'Total size: {tot_size / 1024 / 1024 / 1024} GB')
+                
+            # logger.debug(f'{torch.cuda.memory_summary()}')
+
+            gc.collect()
+            torch.cuda.empty_cache()
 
         for worker in self.config.workers + self.config.test_workers:
             worker.stop()

@@ -156,25 +156,23 @@ class LocalModel(Model):
     def apply_chat_template(self, messages):
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
-        if self.model_name == 'llama-2':
-            conversation = self.conversation.copy()
-            if messages[0]['role'] == 'system':
-                conversation.set_system_message(messages[0]['content'])
-                messages = messages[1:]
-            for msg in messages:
-                conversation.append_message(msg['role'], msg['content'])
-            return conversation.get_prompt() + '[/INST]'
-        elif 'vicuna' in self.model_name:
-            conversation = self.conversation.copy()
-            if messages[0]['role'] == 'system':
-                conversation.set_system_message(messages[0]['content'])
-                messages = messages[1:]
-            for msg in messages:
-                conversation.append_message(msg['role'], msg['content'])
-            prompt = conversation.get_prompt()
-            return prompt.replace('user:', 'User:').strip() + ' ASSISTANT:'
-        else:
-            return self.tokenizer.apply_chat_template(messages, tokenize=False)
+            
+        messages.append({"role": "assistant", "content": None})
+        
+        conversation = self.conversation.copy()
+        if messages[0]['role'] == 'system':
+            conversation.set_system_message(messages[0]['content'])
+            messages = messages[1:]
+        for msg in messages:
+            conversation.append_message(msg['role'], msg['content'])
+        
+        prompt = conversation.get_prompt()
+        if conversation.name == 'vicuna_v1.1':
+            prompt = prompt.replace('user:', 'User:').replace('assistant:', 'ASSISTANT:')
+        
+        if prompt.startswith(self.tokenizer.bos_token):
+            prompt = prompt.replace(self.tokenizer.bos_token, '', 1).lstrip()
+        return prompt
 
     def batch_chat(self, batch_messages, batch_size=8):
         prompts = []
@@ -193,7 +191,7 @@ class LocalModel(Model):
 
         return responses
 
-    def chat(self, messages):
+    def chat(self, messages, **kwargs):
         if isinstance(messages, str):
             messages = [
                 {
@@ -202,22 +200,13 @@ class LocalModel(Model):
                 }
             ]
 
-        if self.model_name == 'llama-2':
-            conversation = self.conversation.copy()
-            if messages[0]['role'] == 'system':
-                conversation.set_system_message(messages[0]['content'])
-                messages = messages[1:]
-            for msg in messages:
-                conversation.append_message(msg['role'], msg['content'])
-            prompt = conversation.get_prompt() + '[/INST]'
-            inputs = self.tokenizer([prompt], return_tensors='pt').to(self.device)
-        elif 'vicuna' in self.model_name:
-            prompt = self.apply_chat_template(messages)
-            inputs = self.tokenizer([prompt], return_tensors='pt').to(self.device)
-        else:
-            inputs = self.tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_dict=True).to(self.device)
+        prompt = self.apply_chat_template(messages)
+        inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=True).to(self.device)
 
-        out = self.model.generate(**inputs, **self.generation_config)
+        temp_gen_config = self.generation_config.copy()
+        if kwargs:
+            temp_gen_config.update(kwargs)
+        out = self.model.generate(**inputs, **temp_gen_config)
         response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)
         return response
 

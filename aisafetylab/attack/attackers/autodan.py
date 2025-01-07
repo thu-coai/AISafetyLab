@@ -196,7 +196,7 @@ class AutoDANMutator:
         sorted_word_dict = OrderedDict(
             sorted(word_dict.items(), key=lambda x: x[1], reverse=True)
         )
-        logger.debug(f'word dict length before topk: {len(sorted_word_dict)}')
+        # logger.debug(f'word dict length before topk: {len(sorted_word_dict)}')
         if topk == -1:
             topk_word_dict = dict(list(sorted_word_dict.items()))
         else:
@@ -236,6 +236,7 @@ class AutoDANSelector:
             loss_slices,
             attack_manager.target_model.tokenizer.pad_token_id,
         )
+        # logger.debug(f'score list: {sorted(score_list)}')
         data.score_list = [-x for x in score_list]
         data.current_loss = current_loss
         data.best_id = best_id
@@ -262,6 +263,7 @@ class AutoDANSelector:
             sorted_score_list,
             attack_manager.config.num_candidates - num_elites,
         )
+        # logger.debug(f'elites score: {sorted_score_list[:num_elites]}')
         return elites, parents_list, num_elites, parents_score_list
 
 class AutoDANEvaluator:
@@ -277,7 +279,7 @@ class AutoDANEvaluator:
         temp_input_ids = prompt_manager.get_input_ids(adv_string=best_template)
 
         logger.debug(
-            f"target model generate input_ids: {attack_manager.target_model.tokenizer.decode(temp_input_ids[: prompt_manager._assistant_role_slice.stop])}"
+            f"target model generate input_ids: {attack_manager.target_model.tokenizer.decode(temp_input_ids[: prompt_manager._assistant_role_slice.stop], add_special_tokens=False)}"
         )
         output_ids = attack_manager.target_model.generate(
             temp_input_ids[: prompt_manager._assistant_role_slice.stop]
@@ -307,6 +309,7 @@ class AutoDANManager(BaseAttackManager):
         rephrase_model_name_or_path,
         rephrase_api_key,
         rephrase_base_url,
+        tokenizer_kwargs=None,
         mutation_rate=0.01,
         word_dict_size=50,
         num_candidates=64,
@@ -335,7 +338,11 @@ class AutoDANManager(BaseAttackManager):
             .eval()
             .to(device)
         )
-        tokenizer = AutoTokenizer.from_pretrained(target_model_name_or_path)
+        if tokenizer_kwargs:
+            tokenizer = AutoTokenizer.from_pretrained(target_model_name_or_path)
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(target_model_name_or_path, **tokenizer_kwargs)
+
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
             tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -344,7 +351,7 @@ class AutoDANManager(BaseAttackManager):
         rephrase_model = load_model(
             model_name=rephrase_model_name_or_path, base_url=rephrase_base_url, api_key=rephrase_api_key
         )
-        
+
         self.init = AutoDANInit(self.config)
         self.mutator = AutoDANMutator(self.config, rephrase_model)
         self.selector = AutoDANSelector()
@@ -410,9 +417,18 @@ class AutoDANManager(BaseAttackManager):
 
     def attack(self):
 
-        for example_idx, example in enumerate(
+        for _example_idx, example in enumerate(
             self.data.attack_dataset):
-            logger.info(f"Attacking example {example_idx + 1} / {len(self.data.attack_dataset)} ...")
+
+            if isinstance(self.config.subset_slice, list):
+                offset = self.config.subset_slice[0]
+                example_idx = _example_idx + offset
+                logger.info(f"Attacking example {example_idx + 1} / {len(self.data.attack_dataset) + offset} ...")
+
+            else:
+                example_idx = _example_idx
+                logger.info(f"Attacking example {example_idx + 1} / {len(self.data.attack_dataset)} ...")
+
             self.init.example_init_attack(self, example, example_idx)
 
             self.mutator.rephrase(example.candidate_templates)
@@ -515,6 +531,5 @@ class AutoDANManager(BaseAttackManager):
                 },
                 save=True,
             )
-        
+
         return self.data.best_template + " " + example.query
-    
