@@ -10,7 +10,7 @@
 ![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)
 
 
-<h1 align="center">AISafetyLab: A comprehensive framework for evaluating, improving and understanding AI safety</h1>
+<h1 align="center">AISafetyLab: A Comprehensive Framework for AI Safety Evaluation and Improvement</h1>
 
 AISafetyLab is a comprehensive framework designed for researchers and developers that are interested in AI safety. We cover three core aspects of AI safety: attack, defense and evaluation, which are supported by some common modules such as models, dataset, utils and logging. We have also compiled several safety-related datasets, provided ample examples for running the code, and maintained a continuously updated list of AI safety-related papers. 
 
