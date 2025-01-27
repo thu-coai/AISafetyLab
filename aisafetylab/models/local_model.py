@@ -171,7 +171,12 @@ class LocalModel(Model):
             prompt = prompt.replace('user:', 'User:').replace('assistant:', 'ASSISTANT:')
         
         if prompt.startswith(self.tokenizer.bos_token):
+            # if there are two bos tokens, remove one
             prompt = prompt.replace(self.tokenizer.bos_token, '', 1).lstrip()
+        
+        if not prompt.startswith(self.tokenizer.bos_token):
+            prompt = self.tokenizer.bos_token + prompt
+            
         return prompt
 
     def batch_chat(self, batch_messages, batch_size=8):
@@ -183,9 +188,11 @@ class LocalModel(Model):
         responses = []
         for i in trange(0, len(prompts), batch_size):
             batch_prompts = prompts[i:i + batch_size]
-            inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True).to(self.device)
+            logger.debug(f'batch_prompts: {batch_prompts}')
+            inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True, add_special_tokens=False).to(self.device)
             out = self.model.generate(**inputs, **self.generation_config)
             for j, input_ids in enumerate(inputs["input_ids"]):
+                # logger.debug(f'complete gen: {self.tokenizer.convert_ids_to_tokens(out[j], skip_special_tokens=False)}')
                 response = self.tokenizer.decode(out[j][len(input_ids):], skip_special_tokens=True)
                 responses.append(response)
 
