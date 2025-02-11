@@ -156,8 +156,12 @@ class LocalModel(Model):
     def apply_chat_template(self, messages):
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
-            
-        messages.append({"role": "assistant", "content": None})
+        
+        prefill = False
+        if messages[-1]['role'] != 'assistant':
+            messages.append({"role": "assistant", "content": None})
+        else:
+            prefill = True
         
         conversation = self.conversation.copy()
         if messages[0]['role'] == 'system':
@@ -170,12 +174,17 @@ class LocalModel(Model):
         if conversation.name == 'vicuna_v1.1':
             prompt = prompt.replace('user:', 'User:').replace('assistant:', 'ASSISTANT:')
         
-        if prompt.startswith(self.tokenizer.bos_token):
+        if self.tokenizer.bos_token and prompt.startswith(self.tokenizer.bos_token):
             # if there are two bos tokens, remove one
             prompt = prompt.replace(self.tokenizer.bos_token, '', 1).lstrip()
         
-        if not prompt.startswith(self.tokenizer.bos_token):
+        if self.tokenizer.bos_token and not prompt.startswith(self.tokenizer.bos_token):
             prompt = self.tokenizer.bos_token + prompt
+            
+        if prefill:
+            if self.tokenizer.eos_token and prompt.strip().endswith(self.tokenizer.eos_token):
+                idx = prompt.rindex(self.tokenizer.eos_token)
+                prompt = prompt[:idx].rstrip()
             
         return prompt
 
@@ -188,7 +197,7 @@ class LocalModel(Model):
         responses = []
         for i in trange(0, len(prompts), batch_size):
             batch_prompts = prompts[i:i + batch_size]
-            logger.debug(f'batch_prompts: {batch_prompts}')
+            # logger.debug(f'batch_prompts: {batch_prompts}')
             inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True, add_special_tokens=False).to(self.device)
             out = self.model.generate(**inputs, **self.generation_config)
             for j, input_ids in enumerate(inputs["input_ids"]):
@@ -208,7 +217,7 @@ class LocalModel(Model):
             ]
 
         prompt = self.apply_chat_template(messages)
-        inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=True).to(self.device)
+        inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=False).to(self.device)
 
         temp_gen_config = self.generation_config.copy()
         if kwargs:

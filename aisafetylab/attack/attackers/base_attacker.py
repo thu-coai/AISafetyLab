@@ -3,7 +3,7 @@ import os
 from loguru import logger
 
 class BaseAttackManager:
-    def __init__(self, res_save_path=None, delete_existing_res=True):
+    def __init__(self, res_save_path=None, delete_existing_res=False):
         self.res_save_path = res_save_path
         logger.info(f"Results will be saved to '{res_save_path}'")
         res_dir = os.path.dirname(res_save_path)

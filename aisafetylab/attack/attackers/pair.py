@@ -73,6 +73,7 @@ class AttackData:
 @dataclass
 class AttackConfig:
     data_path: str
+    data_offset: int
     attack_model_name: str
     attack_model_path: str
     target_model_name: str
@@ -137,7 +138,8 @@ class PAIRInit:
         self.eval_model.generation_config = eval_model_generation_config
         
         # print("dataset path: ", config.data_path)
-        self.attack_dataset = AttackDataset(config.data_path) 
+        subset_slice = slice(config.data_offset, None)
+        self.attack_dataset = AttackDataset(config.data_path, subset_slice) 
         
 
     def load_model(self, model_name, model_path, device=None, api_key=None, base_url=None):
@@ -263,6 +265,7 @@ class PAIRManager(BaseAttackManager):
     """
     def __init__(self, 
                 data_path: str,
+                data_offset: int,
                 attack_model_name: str,
                 attack_model_path: str,
                 target_model_name: str,
@@ -285,8 +288,9 @@ class PAIRManager(BaseAttackManager):
                 n_iterations: int=3,
                 devices:str = 'cuda:0',
                 res_save_path: str='./results/pair_results.jsonl',    
+                delete_existing_res: bool=False
         ):
-        super().__init__(res_save_path)
+        super().__init__(res_save_path, delete_existing_res)
         _fields = fields(AttackConfig)
         local_vars = locals()
         _kwargs = {field.name: local_vars[field.name] for field in _fields}
@@ -480,7 +484,8 @@ class PAIRManager(BaseAttackManager):
         logger.info("Jailbreak started!")
         try:
             instance = AttackData()
-            for example_idx, example in enumerate(tqdm(self.attack_dataset.data, desc="Processing examples")):
+            for _example_idx, example in enumerate(tqdm(self.attack_dataset.data, desc="Processing examples")):
+                example_idx = _example_idx + self.config.data_offset
                 for attr_name, attr_value in example.items():
                     if attr_name in instance.__dict__:
                         setattr(instance, attr_name, attr_value)
@@ -490,9 +495,9 @@ class PAIRManager(BaseAttackManager):
                 instance.clear()                
         except KeyboardInterrupt:
             logger.info("Jailbreak interrupted by user!")
-        self.log()
+        # self.log()
         logger.info("Jailbreak finished!")
-        self.attack_dataset.save_to_jsonl(save_path)
+        # self.attack_dataset.save_to_jsonl(save_path)
         logger.info(
             'Jailbreak result saved at {}!'.format(os.path.join(os.path.dirname(os.path.abspath(__file__)), save_path)))
         

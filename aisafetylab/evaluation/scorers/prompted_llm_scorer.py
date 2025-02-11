@@ -82,6 +82,7 @@ class PromptedLLMScorer(BaseScorer):
         api_key=None,
         generation_config=None,
         prompt_template="zhang2024shieldlm",
+        custom_extract_func=None,
     ):
         super().__init__()
         if model is None:
@@ -89,8 +90,14 @@ class PromptedLLMScorer(BaseScorer):
         else:
             self.model = model
 
-        self.prompt_template_name = prompt_template
-        self.prompt_template = all_templates[prompt_template]
+        if prompt_template not in all_templates:
+            print(f'Use the provided custom prompt template: {prompt_template}')
+            self.prompt_template_name = 'custom'
+            self.prompt_template = prompt_template
+            self.custom_extract_func = custom_extract_func
+        else:
+            self.prompt_template_name = prompt_template
+            self.prompt_template = all_templates[prompt_template]
 
     def extract_res(self, text):
         if self.prompt_template_name == 'qi2023finetuning':
@@ -118,6 +125,9 @@ class PromptedLLMScorer(BaseScorer):
                 logger.warning("Failed to extract a score from the target model's output. Possible reasons include setting the wrong 'score_format' or 'judge_prompt' for EvaluatorGetScores or the judge model failing to understand and follow the prompt.\n model output:{}".format(text))
                 output = 1
             return {"score": output, "output": text}
+        
+        elif self.prompt_template_name == 'custom':
+            return self.custom_extract_func(text)
 
     def score(self, query, response):
         # if self.prompt_template_name == 'qi2023finetuning':
@@ -132,6 +142,7 @@ class PromptedLLMScorer(BaseScorer):
 
         else:
             prompt = self.prompt_template.format(query=query, response=response)
+        # logger.debug(f'prompt template: {self.prompt_template}, prompt: {prompt}')
         model_response = self.model.chat(messages=prompt)
 
         return self.extract_res(model_response)

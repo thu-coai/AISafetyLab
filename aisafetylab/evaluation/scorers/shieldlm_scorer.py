@@ -130,3 +130,4 @@ class ShieldLMScorer(BaseScorer):
             output = outputs[0]
             score = self.extract_label(output)
             return {'score': score, 'output': output}
+        
