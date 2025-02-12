@@ -2,6 +2,7 @@ from fastchat.conversation import get_conv_template
 from loguru import logger
 from tqdm import trange
 import torch
+import numpy as np
 from .base_model import Model
 from .sequence import *
 # Copyright (c) Facebook, Inc. and its affiliates.
@@ -220,7 +221,9 @@ class LocalModel(Model):
             # ppl = torch.exp((loss[:, -output_ids.size(1):]).mean(-1)).item()
             ipt_len = input_ids.size(1)
             loss = loss[0, ipt_len-1:]
-            ppl = torch.exp(loss.mean()).item()
+            ppl = np.exp(loss.mean().item())
+            # logger.debug(f'loss: {loss.mean()}, ppl: {ppl}')
+
             ppls.append(ppl)
         
         return ppls
