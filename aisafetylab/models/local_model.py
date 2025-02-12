@@ -134,8 +134,6 @@ class LocalModel(Model):
 
         return outputs
 
-
-
     def generate(self, input_ids, gen_config=None, batch=False):
         input_ids = input_ids.to(self.model.device)
         if not batch:
@@ -187,6 +185,46 @@ class LocalModel(Model):
                 prompt = prompt[:idx].rstrip()
             
         return prompt
+    
+    def get_ppl(self, batch_messages):
+        ppls = []
+        device = self.model.device
+        for messages in batch_messages:
+            input_text = self.apply_chat_template(messages[:-1])
+            output_text = self.apply_chat_template(messages).replace(input_text, '', 1).lstrip()
+            # logger.debug(f"input_text: {input_text}\noutput_text: {output_text}")
+            inputs = self.tokenizer([input_text], return_tensors="pt", truncation=True, padding=True)
+            input_ids = inputs["input_ids"].to(device)
+            attention_mask = inputs['attention_mask'].to(device)
+            outputs = self.tokenizer([output_text], return_tensors="pt", truncation=True, padding=True, add_special_tokens=False)
+            output_ids = outputs["input_ids"].to(device)
+            output_attention_mask = outputs['attention_mask'].to(device)
+            
+            concat_input_ids = torch.cat([input_ids, output_ids], dim=1)
+            concat_attention_mask = torch.cat([attention_mask, output_attention_mask], dim=1)
+            
+            labels = concat_input_ids.clone()
+            labels[labels == self.tokenizer.pad_token_id] = -100
+            labels[:, :input_ids.shape[1]] = -100
+            
+            outputs = self.model(concat_input_ids, attention_mask=concat_attention_mask)
+            logits = outputs.logits
+            criterion = torch.nn.CrossEntropyLoss(reduction='none')
+            # print(logits.shape, labels.shape)
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            # logits = logits.view(logits.size(0), logits.size(2), logits.size(1))
+            shift_logits = shift_logits.permute(0, 2, 1)
+            loss = criterion(shift_logits, shift_labels)
+            # print(loss)
+            # ppl = torch.exp((loss[:, -output_ids.size(1):]).mean(-1)).item()
+            ipt_len = input_ids.size(1)
+            loss = loss[0, ipt_len-1:]
+            ppl = torch.exp(loss.mean()).item()
+            ppls.append(ppl)
+        
+        return ppls
+            
 
     def batch_chat(self, batch_messages, batch_size=8):
         prompts = []
