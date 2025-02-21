@@ -1,0 +1,4 @@
+defender_type: PARDEN
+model_name: vicuna
+model: lmsys/vicuna-7b-v1.5
+max_new_tokens: 512
