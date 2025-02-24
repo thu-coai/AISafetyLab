@@ -66,7 +66,7 @@ class ICDefender(PreprocessDefender):
             samples.append(item)
         return samples
     
-    def defend(self, message):
+    def defend(self, messages):
         """
         Defend by adding demonstrations of refusing harmful questions.
 
@@ -86,10 +86,14 @@ class ICDefender(PreprocessDefender):
         samples = self.get_demos(demos)
 
         # 4. format the input messages
-        messages = []
+        if isinstance(messages, str):
+            messages = [{"role": "user", "content": messages}]
+        prompt = ""
         for (query, resp) in samples:
-            messages.append({'role': 'user','content': query})
-            messages.append({'role': 'assistant', 'content': resp})
-        messages.append({'role': 'user', 'content': message})
-
+            prompt += f"User:{query}\n\nAssistant:{resp}\n\n"
+        prompt += f"User:{messages[-1]['content']}"
+        messages[-1]["content"] = prompt
+        
+        logger.info(f"ICD prompt: {prompt}")
+        
         return messages, False

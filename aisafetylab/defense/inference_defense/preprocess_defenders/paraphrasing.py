@@ -74,7 +74,7 @@ class ParaphraseDefender(PreprocessDefender):
         prompt = f"Paraphrase the following sentences:\n{text}"
         return self.generate(prompt)
 
-    def defend(self, message: str):
+    def defend(self, messages):
         """
         Defend by paraphrasing the input text.
 
@@ -84,6 +84,9 @@ class ParaphraseDefender(PreprocessDefender):
         Returns:
             str: The paraphrased message.
         """
-        paraphrase_text = self.paraphrase(message)
-        logger.info(paraphrase_text)
-        return paraphrase_text, False
+        if isinstance(messages, str):
+            messages = [{"role": "user", "content": messages}]
+        paraphrase_text = self.paraphrase(messages[-1]["content"])
+        logger.info(f"Paraphrased text: {paraphrase_text}")
+        messages[-1]["content"] = paraphrase_text
+        return messages, False
