@@ -157,25 +157,36 @@ class LocalModel(Model):
             messages = [{"role": "user", "content": messages}]
         
         prefill = False
-        if messages[-1]['role'] != 'assistant':
-            messages.append({"role": "assistant", "content": None})
-        else:
+        if messages[-1]['role'] == 'assistant':
             prefill = True
         
-        conversation = self.conversation.copy()
-        if messages[0]['role'] == 'system':
-            conversation.set_system_message(messages[0]['content'])
-            messages = messages[1:]
-        for msg in messages:
-            conversation.append_message(msg['role'], msg['content'])
+        try:
+            # first try the model's own tokenizer
+            if prefill:
+                prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+            else:
+                prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         
-        prompt = conversation.get_prompt()
-        if conversation.name == 'vicuna_v1.1':
-            prompt = prompt.replace('user:', 'User:').replace('assistant:', 'ASSISTANT:')
+        except Exception as e:
+            conversation = self.conversation.copy()
+            if messages[-1]['role'] != 'assistant':
+                messages.append({"role": "assistant", "content": None})
         
+            if messages[0]['role'] == 'system':
+                conversation.set_system_message(messages[0]['content'])
+                messages = messages[1:]
+            for msg in messages:
+                conversation.append_message(msg['role'], msg['content'])
+            
+            prompt = conversation.get_prompt()
+            if conversation.name == 'vicuna_v1.1':
+                prompt = prompt.replace('user:', 'User:').replace('assistant:', 'ASSISTANT:')
+            
+            
         if self.tokenizer.bos_token and prompt.startswith(self.tokenizer.bos_token):
             # if there are two bos tokens, remove one
-            prompt = prompt.replace(self.tokenizer.bos_token, '', 1).lstrip()
+            # prompt = prompt.replace(self.tokenizer.bos_token, '', 1).lstrip()
+            prompt = prompt.replace(self.tokenizer.bos_token, '', 1)
         
         if self.tokenizer.bos_token and not prompt.startswith(self.tokenizer.bos_token):
             prompt = self.tokenizer.bos_token + prompt
@@ -229,7 +240,7 @@ class LocalModel(Model):
         return ppls
             
 
-    def batch_chat(self, batch_messages, batch_size=8):
+    def batch_chat(self, batch_messages, batch_size=8, skip_special_tokens=True):
         prompts = []
         for messages in batch_messages:
             prompt = self.apply_chat_template(messages)
@@ -242,8 +253,8 @@ class LocalModel(Model):
             inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True, add_special_tokens=False).to(self.device)
             out = self.model.generate(**inputs, **self.generation_config)
             for j, input_ids in enumerate(inputs["input_ids"]):
-                # logger.debug(f'complete gen: {self.tokenizer.convert_ids_to_tokens(out[j], skip_special_tokens=False)}')
-                response = self.tokenizer.decode(out[j][len(input_ids):], skip_special_tokens=True)
+                # logger.debug(f'complete gen: {self.tokenizer.decode(out[j], skip_special_tokens=True)}')
+                response = self.tokenizer.decode(out[j][len(input_ids):], skip_special_tokens=skip_special_tokens)
                 responses.append(response)
 
         return responses
@@ -258,6 +269,7 @@ class LocalModel(Model):
             ]
 
         prompt = self.apply_chat_template(messages)
+        # logger.debug(f'prompt: {prompt}')
         inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=False).to(self.device)
 
         temp_gen_config = self.generation_config.copy()
@@ -265,6 +277,8 @@ class LocalModel(Model):
             temp_gen_config.update(kwargs)
         out = self.model.generate(**inputs, **temp_gen_config)
         response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)
+        # response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=False)
+
         return response
 
 
