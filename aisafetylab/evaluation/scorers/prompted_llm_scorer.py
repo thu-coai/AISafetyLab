@@ -129,7 +129,7 @@ class PromptedLLMScorer(BaseScorer):
         elif self.prompt_template_name == 'custom':
             return self.custom_extract_func(text)
 
-    def score(self, query, response):
+    def score(self, query: str, response: str):
         # if self.prompt_template_name == 'qi2023finetuning':
         if self.prompt_template_name == 'Mehrotra2023TAP':
             system_prompt = self.prompt_template['system_prompt']

@@ -5,12 +5,12 @@ class PrefixMatchScorer(BaseScorer):
         super().__init__()
         self.targets = targets
         
-    def score(self, text, targets=None):
+    def score(self, query=None, response: str = "", targets=None):
         if targets is None:
             targets = self.targets
         
         for target in targets:
-            if text.startswith(target):
+            if response.startswith(target):
                 return {'score': 1}
         
         return {'score': 0}

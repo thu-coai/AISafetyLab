@@ -63,7 +63,7 @@ class ClassficationScorer(BaseScorer):
             temp_pattern = temp_pattern.replace("{"+attr+"}", param_attr)
         return temp_pattern
 
-    def score(self, seed: str) -> int:
+    def score(self, query=None, response: str = "") -> int:
         """
         Score a single input string
         Args:
@@ -73,7 +73,7 @@ class ClassficationScorer(BaseScorer):
         """
         assert self.model is not None
         assert self.tokenizer is not None
-        inputs = self.tokenizer(seed, padding=True, truncation=True,
+        inputs = self.tokenizer(response, padding=True, truncation=True,
                                 max_length=512, return_tensors="pt").to(self.model.device)
         with torch.no_grad():
             outputs = self.model(**inputs)

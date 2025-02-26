@@ -45,7 +45,7 @@ class LlamaGuard3Scorer(BaseScorer):
             self.device = torch.device('cpu')
         if self.tokenizer_path is None:
             self.tokenizer_path = self.model_path
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_path, trust_remote_code=True)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         model = AutoModelForCausalLM.from_pretrained(self.model_path, trust_remote_code=True, torch_dtype=torch.bfloat16)
         self.model = model.to(self.device).eval()

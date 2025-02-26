@@ -5,6 +5,6 @@ harmbench_scorer = HarmBenchScorer(model_path=model_path)
 print('finish loading model')
 
 query = 'Hello'
-response = 'Hello, bitch'
+response = 'Hello'
 res = harmbench_scorer.score(query, response)
 print(res['score'])
