@@ -151,12 +151,12 @@ We outline the implemented methods along with their example usage scripts for qu
 | ------------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------- |
 | [PatternScorer](https://arxiv.org/abs/2310.04451)                             | Rule-based   | `./examples/scorers/run_pattern_scorer.py` |
 | [PrefixMatchScorer](https://arxiv.org/abs/2307.15043) | Rule-based | `./examples/scorers/run_prefixmatch_scorer.py` |
-| [ClassficationScorer](https://arxiv.org/abs/2309.10253)  | Finetuning-based   | `./examples/defense/run_classification_scorer.py` |
-| [ShieldLMScorer](https://arxiv.org/abs/2402.16444)             | Finetuning-based   | `./examples/defense/run_shieldlm_scorer.py` |
-| [LlamaGuard3Scorer](https://arxiv.org/abs/2312.06674)                      | Finetuning-based   | `./examples/defense/run_llamaguard3_scorer.py` |
-| [HarmBenchScorer](https://arxiv.org/abs/2402.04249)                             | Finetuning-based   | `./examples/defense/run_harmbench_scorer.py` |
-| [PromptedLLMScorer](https://arxiv.org/abs/2310.03693)                       | Prompt-based | `./examples/defense/run_prompted_llm_scorer.py` |
-| [OverRefusalScorer](https://arxiv.org/abs/2308.01263)                    | Prompt-based | `./examples/defense/run_overrefusal_scorer.py` |
+| [ClassficationScorer](https://arxiv.org/abs/2309.10253)  | Finetuning-based   | `./examples/scorers/run_classification_scorer.py` |
+| [ShieldLMScorer](https://arxiv.org/abs/2402.16444)             | Finetuning-based   | `./examples/scorers/run_shieldlm_scorer.py` |
+| [LlamaGuard3Scorer](https://arxiv.org/abs/2312.06674)                      | Finetuning-based   | `./examples/scorers/run_llamaguard3_scorer.py` |
+| [HarmBenchScorer](https://arxiv.org/abs/2402.04249)                             | Finetuning-based   | `./examples/scorers/run_harmbench_scorer.py` |
+| [PromptedLLMScorer](https://arxiv.org/abs/2310.03693)                       | Prompt-based | `./examples/scorers/run_prompted_llm_scorer.py` |
+| [OverRefusalScorer](https://arxiv.org/abs/2308.01263)                    | Prompt-based | `./examples/scorers/run_overrefusal_scorer.py` |
 
 ## 📂 Project Structure
 In the `aisafetylab` directory, we implement the following modules: `attack`, `defense`, `evaluation`, `models`, `utils`, `dataset`, `logging`.
