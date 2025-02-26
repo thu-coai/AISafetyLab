@@ -20,6 +20,7 @@ AISafetyLab is a comprehensive framework designed for researchers and developers
 
 ##  🆕 **What's New?**  <!-- omit in toc -->
 
+- **🎉 `2025/02/24`:** We have released our [technical report](https://arxiv.org/pdf/2502.16776).
 - **🎉 `2024/12/31`:** We are excited to officially announce the open-sourcing of AISafetyLab.
 
 
@@ -148,14 +149,14 @@ We outline the implemented methods along with their example usage scripts for qu
 ### Evaluation Methods <!-- omit from toc -->
 | **Method**                                                          | <div align="center">**Category**</div>        | <div align="center">**Example**</div>    |
 | ------------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------- |
-| [PatternScorer](https://arxiv.org/abs/2310.04451)                             | Rule-based   | `./examples/scorers/` |
-| [PrefixMatchScorer](https://arxiv.org/abs/2307.15043) | Rule-based | `./examples/scorers/.py` |
-| [ClassficationScorer](https://arxiv.org/abs/2309.10253)  | Finetuning-based   | `./examples/defense/.py` |
+| [PatternScorer](https://arxiv.org/abs/2310.04451)                             | Rule-based   | `./examples/scorers/run_pattern_scorer.py` |
+| [PrefixMatchScorer](https://arxiv.org/abs/2307.15043) | Rule-based | `./examples/scorers/run_prefixmatch_scorer.py` |
+| [ClassficationScorer](https://arxiv.org/abs/2309.10253)  | Finetuning-based   | `./examples/defense/run_classification_scorer.py` |
 | [ShieldLMScorer](https://arxiv.org/abs/2402.16444)             | Finetuning-based   | `./examples/defense/run_shieldlm_scorer.py` |
 | [LlamaGuard3Scorer](https://arxiv.org/abs/2312.06674)                      | Finetuning-based   | `./examples/defense/run_llamaguard3_scorer.py` |
 | [HarmBenchScorer](https://arxiv.org/abs/2402.04249)                             | Finetuning-based   | `./examples/defense/run_harmbench_scorer.py` |
-| [PromptedLLMScorer](https://arxiv.org/abs/2310.03693)                       | Prompt-based | `./examples/defense/.py` |
-| [OverRefusalScorer](https://arxiv.org/abs/2308.01263)                    | Prompt-based | `./examples/defense/.py` |
+| [PromptedLLMScorer](https://arxiv.org/abs/2310.03693)                       | Prompt-based | `./examples/defense/run_prompted_llm_scorer.py` |
+| [OverRefusalScorer](https://arxiv.org/abs/2308.01263)                    | Prompt-based | `./examples/defense/run_overrefusal_scorer.py` |
 
 ## 📂 Project Structure
 In the `aisafetylab` directory, we implement the following modules: `attack`, `defense`, `evaluation`, `models`, `utils`, `dataset`, `logging`.
@@ -282,7 +283,7 @@ gcg_manager.attack()
 
 We categorize the security defenses of large language models into two main types: **defense during inference time** and **defense during training time**.
 
-![](assets/defense_frame.png)
+![](assets/defense_frame.jpg)
 
 - Inference Time Defense includes three categories:
   - Preprocess
@@ -356,7 +357,7 @@ Additionally, we provide the data load code in the `datasets` directory and vari
 ## 📊 Experimental Results
 
 We first conducted a series of experiments on Vicuna-7B-v1.5 to evaluate the effectiveness of various attack and defense methods, using Llama-Guard-3-8B as the scorer. The results are presented in the figure below.
-![Overview of Experiments](assets/experiments.png)
+![Overview of Experiments](assets/experiments.jpg)
 
 Using our comprehensive framework, we facilitate comparisons between different attack and defense strategies. A more detailed analysis will be provided in our paper; here is a brief overview:
 
