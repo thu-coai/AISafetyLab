@@ -121,6 +121,30 @@ python eval_asr.py
 ```
 The example script `eval_asr.py` uses the saved attack results for evaluation, but you can also change the code to perform attack first according to the code in `examples/attack`.
 
+## 🔍 Quick Index
+
+### Defense Index
+
+| **Method** | <div align="center">**Category**</div> | <div align="center">**Example**</div> |
+|--------|----------|---------|
+| [PPL](https://arxiv.org/abs/2308.14132) | Inference-Time Defense (PreprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Self Reminder](https://www.nature.com/articles/s42256-023-00765-8) | Inference-Time Defense (PreprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Prompt Guard](https://huggingface.co/meta-llama/Prompt-Guard-86M) | Inference-Time Defense (PreprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Goal Prioritization](https://arxiv.org/abs/2311.09096) | Inference-Time Defense (PreprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Paraphrase](https://arxiv.org/abs/2309.00614) | Inference-Time Defense (PreprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [ICD](https://arxiv.org/abs/2310.06387) | Inference-Time Defense (PreprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [SmoothLLM](https://arxiv.org/abs/2310.03684) | Inference-Time Defense (IntraprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [SafeDecoding](https://arxiv.org/abs/2402.08983) | Inference-Time Defense (IntraprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [DRO](https://arxiv.org/abs/2401.18018) | Inference-Time Defense (IntraprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Erase and Check](https://arxiv.org/abs/2309.02705) | Inference-Time Defense (IntraprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Robust Aligned](https://arxiv.org/abs/2309.14348) | Inference-Time Defense (IntraprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Self Evaluation](https://arxiv.org/abs/2308.07308) | Inference-Time Defense (PostprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Aligner](https://arxiv.org/abs/2402.02416) | Inference-Time Defense (PostprocessDefender) | `./examples/defense/run_easy_defense.py` |
+| [Safe Tuning](https://arxiv.org/abs/2309.07875) | Training-Time Defense (Safety Data Tuning) | `./examples/defense/training/run_safe_tuning.sh` |
+| [Safe RLHF](https://arxiv.org/abs/2310.12773) | Training-Time Defense (RL-based Alignment) | `./examples/defense/training/run_saferlhf.sh` |
+| [Safe Unlearning](https://arxiv.org/abs/2407.02855) | Training-Time Defense (Unlearning) | `./examples/defense/training/run_safe_unlearning.sh` |
+
+
 ## 📂 Project Structure
 In the `aisafetylab` directory, we implement the following modules: `attack`, `defense`, `evaluation`, `models`, `utils`, `dataset`, `logging`.
 
