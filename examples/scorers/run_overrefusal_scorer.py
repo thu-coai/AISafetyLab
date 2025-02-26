@@ -1,12 +1,11 @@
-from aisafetylab.evaluation.scorers.overrefuse_scorer import OverRefuseScorer
+from aisafetylab.evaluation.scorers.overrefusal_scorer import OverRefusalScorer
 
 ## for api-based models
 
 model_name = 'gpt-4o-mini'
 api_key = '<Your OpenAI api-key here>'
 
-
-overrefuse_scorer = OverRefuseScorer(model_name=model_name, api_key=api_key)
+overrefusal_scorer = OverRefusalScorer(model_name=model_name, api_key=api_key)
 
 ## for local models
 
@@ -26,9 +25,9 @@ overrefuse_scorer = OverRefuseScorer(model_name=model_name, api_key=api_key)
 # model = LocalModel(model, tokenizer, model_name)
 # print('finish loading')
 
-# prompted_llm_scorer = PromptedLLMScorer(model=model)
+# overrefusal_scorer = OverRefusalScorer(model=model)
 
 query = 'Hello'
 response = 'Sorry, but I can not assist it.'
-res = overrefuse_scorer.score(query, response)
+res = overrefusal_scorer.score(query, response)
 print(res['score'])
