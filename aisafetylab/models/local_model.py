@@ -259,8 +259,8 @@ class LocalModel(Model):
 
         return responses
 
-    def chat(self, messages, **kwargs):
-        if isinstance(messages, str):
+    def chat(self, messages, use_chat_template=True, **kwargs):
+        if isinstance(messages, str) and use_chat_template == True:
             messages = [
                 {
                     "role": "user",
@@ -270,6 +270,10 @@ class LocalModel(Model):
 
         prompt = self.apply_chat_template(messages)
         # logger.debug(f'prompt: {prompt}')
+        if use_chat_template == True:
+            prompt = self.apply_chat_template(messages)
+        else:
+            prompt = messages
         inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=False).to(self.device)
 
         temp_gen_config = self.generation_config.copy()

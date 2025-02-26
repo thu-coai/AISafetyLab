@@ -15,7 +15,8 @@ from aisafetylab.defense.inference_defense.intraprocess_defenders import (
 )
 from aisafetylab.defense.inference_defense.postprocess_defenders import (
     SelfExamDefender,
-    AlignerDefender
+    AlignerDefender,
+    PardenDefender,
 )
 import yaml
 from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoTokenizer
@@ -50,7 +51,8 @@ def create_defender(defender_type, **kwargs):
 
         # Postprocess defenders
         'SelfExam': SelfExamDefender,
-        'Aligner': AlignerDefender
+        'Aligner': AlignerDefender,
+        'PARDEN': PardenDefender,
         
 
         # Additional defenders can be added here

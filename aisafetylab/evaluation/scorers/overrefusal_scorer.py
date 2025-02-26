@@ -34,7 +34,7 @@ all_templates = {
     "three_class": three_class_prompt
 }
 
-class OverRefuseScorer(BaseScorer):
+class OverRefusalScorer(BaseScorer):
 
     def __init__(
         self,

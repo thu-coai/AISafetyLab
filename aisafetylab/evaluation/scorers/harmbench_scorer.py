@@ -8,12 +8,13 @@ class HarmBenchScorer(BaseScorer):
     def __init__(
         self,
         model_path: str,
+        device: str = "cuda:0",
         tokenizer_path: Optional[str] = None
     ):
         super().__init__()
         self.model_path = model_path
         self.tokenizer_path = tokenizer_path
-        self.load_model()
+        self.load_model(device=device)
 
         self.model_template = {
             "description": "Template For Llama-2-13b-behavior classifier",
@@ -61,10 +62,10 @@ class HarmBenchScorer(BaseScorer):
             Answer: [/INST]''',
         }
 
-    def load_model(self):
+    def load_model(self, device):
         print('loading model...')
         if torch.cuda.is_available():
-            self.device = torch.device(0)
+            self.device = torch.device(device)
         else:
             self.device = torch.device('cpu')
         if self.tokenizer_path is None:

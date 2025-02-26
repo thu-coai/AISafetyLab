@@ -46,6 +46,7 @@ if __name__ == "__main__":
     # defender_name="goal_prioritization"
     # defender_name="icd"
     # defender_name="paraphrase"
+    # defender_name="parden"
     # defender_name="prompt_guard"
     # defender_name="robust_aligned"
     # defender_name="safedecoding"
