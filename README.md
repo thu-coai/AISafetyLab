@@ -124,6 +124,22 @@ The example script `eval_asr.py` uses the saved attack results for evaluation, b
 We outline the implemented methods along with their example usage scripts for quick reference:
 
 ### Attack Methods <!-- omit from toc -->
+| **Method** | <div align="center">**Category**</div> | <div align="center">**Example**</div> |
+|------------|----------------------------------------|----------------------------------------|
+| [GCG](https://arxiv.org/abs/2307.15043) | White-box Attack | `./examples/attack/run_gcg.py` |
+| [AdvPrompter](https://arxiv.org/abs/2404.16873) | Gray-box Attack | `./examples/attack/run_advprompter.py` |
+| [AutoDAN](https://arxiv.org/abs/2310.04451) | Gray-box Attack | `./examples/attack/run_autodan.py` |
+| [LAA](https://arxiv.org/abs/2404.02151) | Gray-box Attack | `./examples/attack/run_laa.py` |
+| [GPTFUZZER](https://arxiv.org/pdf/2309.10253.pdf) | Black-box Attack | `./examples/attack/run_gptfuzzer.py` |
+| [Cipher](https://arxiv.org/pdf/2308.06463.pdf) | Black-box Attack | `./examples/attack/run_cipher.py` |
+| [DeepInception](https://arxiv.org/pdf/2311.03191) | Black-box Attack | `./examples/attack/run_inception.py` |
+| [In-Context-Learning Attack](https://arxiv.org/pdf/2310.06387.pdf) | Black-box Attack | `./examples/attack/run_ica.py` |
+| [Jailbroken](https://arxiv.org/pdf/2307.02483.pdf) | Black-box Attack | `./examples/attack/run_jailbroken.py` |
+| [Multilingual](https://arxiv.org/abs/2310.06474) | Black-box Attack | `./examples/attack/run_multilingual.py` |
+| [PAIR](https://arxiv.org/abs/2310.08419) | Black-box Attack | `./examples/attack/run_pair.py` |
+| [ReNeLLM](https://arxiv.org/abs/2311.08268) | Black-box Attack | `./examples/attack/run_rene.py` |
+| [TAP](https://arxiv.org/abs/2312.02119) | Black-box Attack | `./examples/attack/run_tap.py` |
+
 
 ### Defense Methods <!-- omit from toc -->
 
