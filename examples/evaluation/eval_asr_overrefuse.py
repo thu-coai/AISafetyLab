@@ -4,7 +4,7 @@ import numpy as np
 import torch, os
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from aisafetylab.models import load_model
-from aisafetylab.evaluation.scorers import OverRefuseScorer
+from aisafetylab.evaluation.scorers import OverRefusalScorer
 from aisafetylab.models import LocalModel
 from aisafetylab.defense.inference_defense import create_defender_from_yaml
 from aisafetylab.defense.inference_defense import batch_chat
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         "max_new_tokens": 512
     }
     model = load_model(model=model, tokenizer=tokenizer, model_name='vicuna-7b-v1.5', generation_config=generation_config)
-    scorer = OverRefuseScorer(
+    scorer = OverRefusalScorer(
         model_name="gpt-4o-mini",
         base_url="https://api.openai.com/v1",
         api_key="YOUR_KEY",
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
     # XSTEST dataset
     path = "thu-coai/AISafetyLab_Datasets/xstest_safe"
-    save_path = f"evaluation_results/overrefuse/{defender_name}_vicuna-7b-v1.5_test.json"
+    save_path = f"evaluation_results/overrefusal/{defender_name}_vicuna-7b-v1.5_test.json"
 
     evaluate_asr(
         path,

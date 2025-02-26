@@ -27,6 +27,7 @@ AISafetyLab is a comprehensive framework designed for researchers and developers
 - [🚀 Quick Start](#-quick-start)
   - [🔧 Installation](#-installation)
   - [🧪 Examples](#-examples)
+- [🔍 Quick Index](#-quick-index)
 - [📂 Project Structure](#-project-structure)
   - [Attack](#attack)
     - [Attack Methods](#attack-methods)
@@ -70,9 +71,6 @@ pip install -e .
 
 ### 🧪 Examples
 We have provided a range of examples demonstrating how to execute the implemented attack and defense methods, as well as how to conduct safety scoring and evaluations.
-
-
-
 
 ### 🎓 Tutorial <!-- omit from toc -->
 Check out our [**tutorial.ipynb**](https://github.com/thu-coai/AISafetyLab/blob/main/tutorial.ipynb) for a quick start! 🚀
@@ -122,8 +120,11 @@ python eval_asr.py
 The example script `eval_asr.py` uses the saved attack results for evaluation, but you can also change the code to perform attack first according to the code in `examples/attack`.
 
 ## 🔍 Quick Index
+We outline the implemented methods along with their example usage scripts for quick reference:
 
-### Defense Index
+### Attack Methods <!-- omit from toc -->
+
+### Defense Methods <!-- omit from toc -->
 
 | **Method** | <div align="center">**Category**</div> | <div align="center">**Example**</div> |
 |--------|----------|---------|
@@ -144,6 +145,17 @@ The example script `eval_asr.py` uses the saved attack results for evaluation, b
 | [Safe RLHF](https://arxiv.org/abs/2310.12773) | Training-Time Defense (RL-based Alignment) | `./examples/defense/training/run_saferlhf.sh` |
 | [Safe Unlearning](https://arxiv.org/abs/2407.02855) | Training-Time Defense (Unlearning) | `./examples/defense/training/run_safe_unlearning.sh` |
 
+### Evaluation Methods <!-- omit from toc -->
+| **Method**                                                          | <div align="center">**Category**</div>        | <div align="center">**Example**</div>    |
+| ------------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------- |
+| [PatternScorer](https://arxiv.org/abs/2310.04451)                             | Rule-based   | `./examples/scorers/` |
+| [PrefixMatchScorer](https://arxiv.org/abs/2307.15043) | Rule-based | `./examples/scorers/.py` |
+| [ClassficationScorer](https://arxiv.org/abs/2309.10253)  | Finetuning-based   | `./examples/defense/.py` |
+| [ShieldLMScorer](https://arxiv.org/abs/2402.16444)             | Finetuning-based   | `./examples/defense/run_shieldlm_scorer.py` |
+| [LlamaGuard3Scorer](https://arxiv.org/abs/2312.06674)                      | Finetuning-based   | `./examples/defense/run_llamaguard3_scorer.py` |
+| [HarmBenchScorer](https://arxiv.org/abs/2402.04249)                             | Finetuning-based   | `./examples/defense/run_harmbench_scorer.py` |
+| [PromptedLLMScorer](https://arxiv.org/abs/2310.03693)                       | Prompt-based | `./examples/defense/.py` |
+| [OverRefusalScorer](https://arxiv.org/abs/2308.01263)                    | Prompt-based | `./examples/defense/.py` |
 
 ## 📂 Project Structure
 In the `aisafetylab` directory, we implement the following modules: `attack`, `defense`, `evaluation`, `models`, `utils`, `dataset`, `logging`.
@@ -323,7 +335,7 @@ We integrate seven widely applied evaluation methods for safety detection, each 
 
 All the scorers use the `score` method to conduct safety evaluation. This method takes a query and its associated response as input, and returns a dict with a key "score", indicating the final judgment of the scorer. A score of `0` represents a safe response, while a score of `1` indicates an unsafe response. Additional outputs from the scorer are also included in the returned dict.
 
-Additionally, we implement an `OverRefuseScorer` based on the work of [Paul et al](https://arxiv.org/abs/2308.01263). to evaluate the overrefuse rate of a model. The input and output format of this scorer is consistent with that of the other scorers.
+Additionally, we implement an `OverRefusalScorer` based on the work of [Paul et al](https://arxiv.org/abs/2308.01263). to evaluate the over-refusal rate of a model. The input and output format of this scorer is consistent with that of the other scorers.
 
 
 

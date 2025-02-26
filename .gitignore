@@ -24,6 +24,7 @@ dro_res/
 examples/attack/logs
 examples/attack/exp
 overrefuse/
+overrefusal/
 safedecoding/
 aligner/
 .DS_Store
