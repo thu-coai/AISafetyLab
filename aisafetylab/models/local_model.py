@@ -240,18 +240,21 @@ class LocalModel(Model):
         return ppls
             
 
-    def batch_chat(self, batch_messages, batch_size=8, skip_special_tokens=True):
+    def batch_chat(self, batch_messages, batch_size=8, skip_special_tokens=True, **kwargs):
         prompts = []
         for messages in batch_messages:
             prompt = self.apply_chat_template(messages)
             prompts.append(prompt)
 
         responses = []
+        temp_gen_config = self.generation_config.copy()
+        if kwargs:
+            temp_gen_config.update(kwargs)
         for i in trange(0, len(prompts), batch_size):
             batch_prompts = prompts[i:i + batch_size]
             # logger.debug(f'batch_prompts: {batch_prompts}')
             inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True, add_special_tokens=False).to(self.device)
-            out = self.model.generate(**inputs, **self.generation_config)
+            out = self.model.generate(**inputs, **temp_gen_config)
             for j, input_ids in enumerate(inputs["input_ids"]):
                 # logger.debug(f'complete gen: {self.tokenizer.decode(out[j], skip_special_tokens=True)}')
                 response = self.tokenizer.decode(out[j][len(input_ids):], skip_special_tokens=skip_special_tokens)

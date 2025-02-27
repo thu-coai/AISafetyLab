@@ -51,13 +51,15 @@ class OpenAIModel(Model):
             self.conversation.append_message(self.conversation.roles[index % 2], message)
             
         cur = 0
+        temp_gen_config = self.generation_config.copy()
+        if kwargs:
+            temp_gen_config.update(kwargs)
         while cur < max_try:
             try:
                 response = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=self.conversation.to_openai_api_messages(),
-                    **kwargs,
-                    **self.generation_config
+                    **temp_gen_config
                 )
                 content = response.choices[0].message.content
                 ##print("content: ", content)
@@ -72,6 +74,9 @@ class OpenAIModel(Model):
     
     def chat(self, messages, clear_old_history=True, max_try=5, try_gap=3, **kwargs):
         return self.generate(messages, clear_old_history, max_try, try_gap, **kwargs)
+    
+    def batch_chat(self, batch_messages, clear_old_history=True, max_try=5, try_gap=3, **kwargs):
+        return [self.chat(messages, clear_old_history, max_try, try_gap, **kwargs) for messages in batch_messages]
     
     def get_response(self, prompts_list, max_n_tokens=None, no_template=False, gen_config={}):
         if isinstance(prompts_list[0], str):
