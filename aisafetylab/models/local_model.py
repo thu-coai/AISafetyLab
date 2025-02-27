@@ -42,10 +42,7 @@ class LocalModel(Model):
                 _model_name = 'vicuna_v1.1'
             self.conversation = get_conv_template(_model_name)
         except KeyError:
-            logger.error(f'Invalid model_name: {model_name}. Refer to '
-                          'https://github.com/lm-sys/FastChat/blob/main/fastchat/conversation.py '
-                          'for possible options and templates.')
-            raise  # Continue raising the KeyError
+            logger.warning("using default conversation template")
 
         if model_name == 'llama-2':
             self.conversation.sep2 = self.conversation.sep2.strip()
@@ -140,7 +137,6 @@ class LocalModel(Model):
         if not batch:
             if gen_config is None:
                 gen_config = self.model.generation_config
-                gen_config.max_new_tokens = 64
 
             attn_masks = torch.ones_like(input_ids).to(self.model.device)
             output_ids = self.model.generate(input_ids,
@@ -247,14 +243,21 @@ class LocalModel(Model):
             prompts.append(prompt)
 
         responses = []
-        temp_gen_config = self.generation_config.copy()
-        if kwargs:
-            temp_gen_config.update(kwargs)
+        temp_generation_config = self.generation_config.copy()
+        
+        if "generation_config" in kwargs:
+            temp_generation_config = kwargs["generation_config"]
+        else:
+            temp_generation_config = self.generation_config.copy()
+            for k in kwargs:
+                if k in self.generation_config.__annotations__.keys():
+                    setattr(temp_generation_config, k, kwargs[k])
+        
         for i in trange(0, len(prompts), batch_size):
             batch_prompts = prompts[i:i + batch_size]
             # logger.debug(f'batch_prompts: {batch_prompts}')
             inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True, add_special_tokens=False).to(self.device)
-            out = self.model.generate(**inputs, **temp_gen_config)
+            out = self.model.generate(**inputs, **temp_generation_config)
             for j, input_ids in enumerate(inputs["input_ids"]):
                 # logger.debug(f'complete gen: {self.tokenizer.decode(out[j], skip_special_tokens=True)}')
                 response = self.tokenizer.decode(out[j][len(input_ids):], skip_special_tokens=skip_special_tokens)
@@ -279,10 +282,17 @@ class LocalModel(Model):
             prompt = messages
         inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=False).to(self.device)
 
-        temp_gen_config = self.generation_config.copy()
-        if kwargs:
-            temp_gen_config.update(kwargs)
-        out = self.model.generate(**inputs, **temp_gen_config)
+        temp_generation_config = self.generation_config.copy()
+        
+        if "generation_config" in kwargs:
+            temp_generation_config = kwargs["generation_config"]
+        else:
+            temp_generation_config = self.generation_config.clone()
+            for k in kwargs:
+                if k in self.generation_config.__annotations__.keys():
+                    setattr(temp_generation_config, k, kwargs[k])
+                    
+        out = self.model.generate(**inputs, **temp_generation_config)
         response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)
         # response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=False)
 

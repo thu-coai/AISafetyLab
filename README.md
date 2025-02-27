@@ -102,7 +102,7 @@ CUDA_VISIBLE_DEVICES=0 python run_defense.py
 As for training time defense, we provide 3 fast scripts and here's an example:
 ```bash
 cd examples/defense/training
-bash run_safe_tuning
+bash run_safe_tuning.sh
 ```
 
 #### 📊 Score  <!-- omit from toc -->
@@ -120,7 +120,9 @@ python eval_asr.py
 ```
 The example script `eval_asr.py` uses the saved attack results for evaluation, but you can also change the code to perform attack first according to the code in `examples/attack`.
 
-## 🔍 Quick Index
+We also provide quick scripts for interaction with models, which is located in `examples/interaction`.
+
+## 🔍 Quick Indexe
 We outline the implemented methods along with their example usage scripts for quick reference:
 
 ### Attack Methods <!-- omit from toc -->
