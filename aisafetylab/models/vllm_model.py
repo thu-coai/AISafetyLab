@@ -98,9 +98,9 @@ class VLLMModel(Model):
         else:
             temp_generation_config = self.generation_config.clone()
             for k in kwargs:
-                if k in self.generation_config.__annotations__.__dict__:
-                    temp_generation_config[k] = kwargs[k]
-        
+                if k in self.generation_config.__annotations__.keys():
+                    setattr(temp_generation_config, k, kwargs[k])
+
         outputs = self.model.generate([input_text], temp_generation_config)
         generated_text = outputs[0].outputs[0].text
         return generated_text
@@ -123,8 +123,8 @@ class VLLMModel(Model):
         else:
             temp_generation_config = self.generation_config.clone()
             for k in kwargs:
-                if k in self.generation_config.__annotations__.__dict__:
-                    temp_generation_config[k] = kwargs[k]
+                if k in self.generation_config.__annotations__.keys():
+                    setattr(temp_generation_config, k, kwargs[k])
 
         outputs = self.model.generate(input_texts, temp_generation_config)
         generated_texts = [output.outputs[0].text for output in outputs]

@@ -1,14 +1,14 @@
 from .base_scorer import BaseScorer
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from typing import Optional
+from typing import Optional, Union
 
 
 class HarmBenchScorer(BaseScorer):
     def __init__(
         self,
         model_path: str,
-        device: str = "cuda:0",
+        device: Union[str, torch.device] = "cuda:0",
         tokenizer_path: Optional[str] = None
     ):
         super().__init__()
