@@ -374,7 +374,7 @@ We will continuously update and improve our repository, and add the following fe
 - [ ] Implement methods for multimodal safety.
 - [ ] Implement methods for agent safety.
 - [ ] Provide a detailed document.
-- [ ] Release a paper introducing the design of AISafetyLab and relevant experimental results.
+- [x] Release a paper introducing the design of AISafetyLab and relevant experimental results.
 
 Contributions are highly encouraged, so feel free to submit pull requests or provide suggestions!
 
@@ -486,6 +486,9 @@ Contributions are highly encouraged, so feel free to submit pull requests or pro
 - [2024 / 7] [SafeDecoding: Defending against Jailbreak Attacks via Safety-Aware Decoding](https://aclanthology.org/2024.acl-long.303/)  Zhangchen Xu, ..., Radha Poovendran. [University of Washington] `ACL`.
 **TL;DR**: The paper introduces SafeDecoding, a safety-aware decoding strategy for large language models (LLMs) that defends against jailbreak attacks by amplifying safety disclaimers and reducing harmful responses, without compromising helpfulness.
 
+- [2024 / 3] [Ensuring Safe and High-Quality Outputs: A Guideline Library Approach for Language Models](https://aclanthology.org/2024.naacl-long.65/) Yi Luo, ..., Yeyun Gong. [Xiamen University, Microsoft Research Asia] `NAACL`.
+**TL;DR**: This paper introduces Guide-Align, a method that automatically constructs a detailed and comprehensive guideline library and applies relevant guidelines to different inputs, guiding LLMs to generate safe and high-quality responses.
+
 - [2024 / 2] [Aligner: Efficient Alignment by Learning to Correct](https://arxiv.org/pdf/2402.02416)  Jiaming Ji, Boyuan Chen, ..., Yaodong Yang. [Peking University] `NeurIPS`.
 **TL;DR**: The paper introduces Aligner, a simple and efficient alignment method that uses a small model to improve large language models by learning correctional residuals, enabling rapid adaptation and performance enhancement.
 
@@ -576,13 +579,4 @@ safety.
 
 ## How to Contribute
 
-Feel free to submit pull requests for bug fixes, new attack methods, or improvements to existing features. For more details, check out the issues page.
-
----
-
-## ⚠️ Disclaimer & Acknowledgement
-We develop AISafetyLab for research purposes. If you intend to use AISafetyLab for other purposes, please ensure compliance with the licenses of the original methods, repos, papers and models.
-
-Special thanks to the authors of the referenced papers for providing detailed research and insights into LLM security vulnerabilities.
-
-We extend our gratitude to the authors of various AI safety methods and to the EasyJailbreak repository for providing great resources that contribute to the development of AISafetyLab.
+Feel free to submit pull requests for bug fixes, new attack methods, or improvements to existing features. For mo
