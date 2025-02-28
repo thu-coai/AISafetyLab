@@ -56,6 +56,8 @@ AISafetyLab is a comprehensive framework designed for researchers and developers
     - [Benchmarks](#benchmarks)
   - [Explainability](#explainability)
 - [How to Contribute](#how-to-contribute)
+- [⚠️ Disclaimer \& Acknowledgement](#️-disclaimer--acknowledgement)
+- [Citation](#citation)
 
 
 
@@ -596,4 +598,24 @@ safety.
 
 ## How to Contribute
 
-Feel free to submit pull requests for bug fixes, new attack methods, or improvements to existing features. For mo
+Feel free to submit pull requests for bug fixes, new attack methods, or improvements to existing features. For more details, check out the issues page.
+
+---
+
+## ⚠️ Disclaimer & Acknowledgement
+We develop AISafetyLab for research purposes. If you intend to use AISafetyLab for other purposes, please ensure compliance with the licenses of the original methods, repos, papers and models.
+
+Special thanks to the authors of the referenced papers for providing detailed research and insights into LLM security vulnerabilities.
+
+We extend our gratitude to the authors of various AI safety methods and to the EasyJailbreak repository for providing great resources that contribute to the development of AISafetyLab.
+
+## Citation
+If you find our repository helpful, please kindly cite our paper:
+```
+@article{zhang2025aisafetylab,
+  title={AISafetyLab: A Comprehensive Framework for AI Safety Evaluation and Improvement},
+  author={Zhang, Zhexin and Lei, Leqi and Yang, Junxiao and Huang, Xijie and Lu, Yida and Cui, Shiyao and Chen, Renmiao and Zhang, Qinglin and Wang, Xinyuan and Wang, Hao and others},
+  journal={arXiv preprint arXiv:2502.16776},
+  year={2025}
+}
+```
