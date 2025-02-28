@@ -56,7 +56,6 @@ AISafetyLab is a comprehensive framework designed for researchers and developers
     - [Benchmarks](#benchmarks)
   - [Explainability](#explainability)
 - [How to Contribute](#how-to-contribute)
-- [⚠️ Disclaimer \& Acknowledgement](#️-disclaimer--acknowledgement)
 
 
 
@@ -122,7 +121,7 @@ The example script `eval_asr.py` uses the saved attack results for evaluation, b
 
 We also provide quick scripts for interaction with models, which is located in `examples/interaction`.
 
-## 🔍 Quick Indexe
+## 🔍 Quick Index
 We outline the implemented methods along with their example usage scripts for quick reference:
 
 ### Attack Methods <!-- omit from toc -->

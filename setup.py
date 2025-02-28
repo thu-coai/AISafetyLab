@@ -43,7 +43,8 @@ setup(
         'safetensors',
         'setproctitle',
         'torchrl',
-        'hydra-core'
+        'hydra-core',
+        'vllm'
     ],
     python_requires=">=3.7",
     keywords=['ai safety', 
