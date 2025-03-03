@@ -34,6 +34,24 @@ class VLLMModel(Model):
             if isinstance(generation_config, SamplingParams):
                 self.generation_config = generation_config
             else:
+                # handle incorrect keys
+                # removed keys
+                removed_keys = set(['do_sample'])
+                change_name_keys = {'max_new_tokens': 'max_tokens'}
+                new_generation_config = {}
+                for k, v in generation_config.items():
+                    if k == 'top_k' and v == 0:
+                        logger.info('Change top_k from 0 to -1 for VLLM')
+                        new_generation_config['top_k'] = -1
+                    elif k in removed_keys:
+                        logger.info(f'Remove sampling parameter "{k}" as it is not used in VLLM')
+                        continue
+                    elif k in change_name_keys:
+                        logger.info(f'Change sampling parameter "{k}" to "{change_name_keys[k]}" for VLLM')
+                        new_generation_config[change_name_keys[k]] = v
+                    else:
+                        new_generation_config[k] = v
+                generation_config = new_generation_config
                 self.generation_config = SamplingParams(**generation_config)
 
 
