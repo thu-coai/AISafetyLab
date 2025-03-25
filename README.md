@@ -16,7 +16,9 @@ AISafetyLab is a comprehensive framework designed for researchers and developers
 
 **<p align='center'>Please kindly 🌟star🌟 our repository if you find it helpful!</p>**
 
+## Star History
 
+[![Star History Chart](https://api.star-history.com/svg?repos=thu-coai/AISafetyLab&type=Date)](https://www.star-history.com/#thu-coai/AISafetyLab&Date)
 
 ##  🆕 **What's New?**  <!-- omit in toc -->
 
