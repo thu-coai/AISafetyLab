@@ -22,11 +22,14 @@ AISafetyLab is a comprehensive framework designed for researchers and developers
 
 ##  🆕 **What's New?**  <!-- omit in toc -->
 
+
+- **🎉 `2025/03/27`:** A [demo video](https://youtu.be/1cM5M1lMVv4) is available now!
 - **🎉 `2025/02/24`:** We have released our [technical report](https://arxiv.org/pdf/2502.16776).
 - **🎉 `2024/12/31`:** We are excited to officially announce the open-sourcing of AISafetyLab.
 
 
 ## 📜 Table of Contents  <!-- omit from toc -->
+- [Star History](#star-history)
 - [🚀 Quick Start](#-quick-start)
   - [🔧 Installation](#-installation)
   - [🧪 Examples](#-examples)
