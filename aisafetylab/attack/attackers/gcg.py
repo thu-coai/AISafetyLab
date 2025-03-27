@@ -27,7 +27,7 @@ from loguru import logger
 from aisafetylab.logging import setup_logger
 from aisafetylab.attack.prompt_manager import GCGAttackPrompt, ModelWorker
 from aisafetylab.attack.mutation import GradientSubstituter
-from aisafetylab.utils import get_nonascii_toks, NpEncoder
+from aisafetylab.utils import get_nonascii_toks
 from aisafetylab.attack.attackers import BaseAttackManager
 from aisafetylab.evaluation.scorers import PatternScorer
 from aisafetylab.defense.inference_defense import chat
@@ -556,7 +556,7 @@ class GCGMultiPromptAttack(object):
         log['tests'].append(tests)
 
         with open(self.logfile, 'w') as f:
-            json.dump(log, f, indent=4, cls=NpEncoder)
+            json.dump(log, f, indent=4)
 
         # if verbose:
         #     output_str = ''
@@ -666,7 +666,7 @@ class ProgressiveMultiPromptAttack(object):
                         'losses': [],
                         'runtimes': [],
                         'tests': []
-                    }, f, indent=4, cls=NpEncoder
+                    }, f, indent=4
                 )
 
     @staticmethod
@@ -898,7 +898,7 @@ class IndividualPromptAttack(object):
                         'losses': [],
                         'runtimes': [],
                         'tests': []
-                    }, f, indent=4, cls=NpEncoder
+                    }, f, indent=4
                 )
 
     @staticmethod
@@ -1423,7 +1423,8 @@ class GCGMainManager(BaseAttackManager):
                 progressive_models=self.config.progressive_models,
                 progressive_goals=self.config.progressive_goals,
                 control_init=self.config.control_init,
-                logfile=f"{self.config.res_save_path}_{self.config.timestamp}_log.json",
+                # logfile=f"{self.config.res_save_path}_{self.config.timestamp}_log.json",
+                logfile=None,
                 managers=self.config.managers,
                 test_goals=self.config.test_goals,
                 test_targets=self.config.test_targets,
@@ -1589,17 +1590,3 @@ class GCGMainManager(BaseAttackManager):
 
         for worker in self.config.workers + self.config.test_workers:
             worker.stop()
-
-
-from omegaconf import DictConfig
-import hydra
-@hydra.main(version_base=None, config_path="./configs", config_name="gcg_config")
-def main(cfg: DictConfig):
-    print(cfg)
-
-    gcg_manager = GCGMainManager(**cfg)
-
-    gcg_manager.batch_attack()
-
-if __name__ == "__main__":
-    main()

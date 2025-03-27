@@ -34,3 +34,4 @@ datasets/_processed_data
 checkpoints/
 aisafetylab/defense/training_defense/preprocess
 wandb
+demo

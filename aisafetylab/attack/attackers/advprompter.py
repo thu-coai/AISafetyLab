@@ -13,7 +13,6 @@ from copy import copy
 import pandas as pd
 import os
 import numpy as np
-import omegaconf
 import pytorch_lightning as pl
 import setproctitle
 import torch
@@ -189,9 +188,7 @@ class BaseWorkspace:
     def _init_wandb(self):
         tqdm.write("Initializing Wandb...")
         wandb_id = wandb.util.generate_id()
-        config = omegaconf.OmegaConf.to_container(
-            self.cfg, resolve=True, throw_on_missing=True
-        )
+        config = self.cfg
         wandb.init(
             entity=self.cfg.wandb_params.entity,
             project=self.cfg.wandb_params.project,

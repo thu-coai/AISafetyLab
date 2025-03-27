@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="aisafetylab",
-    version="0.0.dev",
+    version="0.1",
     description="AI safety toolkits and resources",
     author="Zhexin Zhang, Leqi Lei, et al.",
     author_email="nonstopfor@gmail.com, leileqi@qq.com",
@@ -13,7 +13,7 @@ setup(
         'transformers>=4.34.0',
         'sentencepiece',
         'datasets',
-        'torch>=2.0',
+        'torch==2.5.1',
         'openai>=1.0.0',
         'numpy',
         'pandas',
@@ -22,7 +22,7 @@ setup(
         'loguru',
         'jsonlines',
         'spacy',
-        'tokenizers >= 0.13.3',
+        'tokenizers>=0.13.3',
         'tensorboard',
         'wandb',
         'deepspeed',
@@ -32,7 +32,6 @@ setup(
         'nvitop',
         'rich',
         'typing-extensions',
-        'omegaconf',
         'anthropic',
         'tiktoken',
         'torchrl',
@@ -43,7 +42,6 @@ setup(
         'safetensors',
         'setproctitle',
         'torchrl',
-        'hydra-core',
         'vllm'
     ],
     python_requires=">=3.7",
