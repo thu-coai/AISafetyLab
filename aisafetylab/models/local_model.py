@@ -288,9 +288,9 @@ class LocalModel(Model):
             temp_generation_config = kwargs["generation_config"]
         else:
             temp_generation_config = self.generation_config.copy()
-            for k in kwargs:
-                if k in self.generation_config.keys():
-                    setattr(temp_generation_config, k, kwargs[k])
+            temp_generation_config.update(kwargs)
+                    
+        logger.debug(f'Generation config: {temp_generation_config}')
                     
         out = self.model.generate(**inputs, **temp_generation_config)
         response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)

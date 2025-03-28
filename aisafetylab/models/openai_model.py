@@ -61,12 +61,12 @@ class OpenAIModel(Model):
                     messages=self.conversation.to_openai_api_messages(),
                     **temp_gen_config
                 )
+                logger.debug(f"messages: {self.conversation.to_openai_api_messages()}\nresponse: {response}")
                 content = response.choices[0].message.content
                 ##print("content: ", content)
                 return content
             except Exception as e:
                 logger.error(f"Failed to generate response within {self.model_name}: {e}, retrying...")
-                logger.error(f"messages: {self.conversation.to_openai_api_messages()}\nresponse: {response}")
                 cur += 1
                 if cur < max_try:
                     sleep(try_gap)
