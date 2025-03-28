@@ -250,7 +250,7 @@ class LocalModel(Model):
         else:
             temp_generation_config = self.generation_config.copy()
             for k in kwargs:
-                if k in self.generation_config.__annotations__.keys():
+                if k in self.generation_config.keys():
                     setattr(temp_generation_config, k, kwargs[k])
         
         for i in trange(0, len(prompts), batch_size):
@@ -287,9 +287,9 @@ class LocalModel(Model):
         if "generation_config" in kwargs:
             temp_generation_config = kwargs["generation_config"]
         else:
-            temp_generation_config = self.generation_config.clone()
+            temp_generation_config = self.generation_config.copy()
             for k in kwargs:
-                if k in self.generation_config.__annotations__.keys():
+                if k in self.generation_config.keys():
                     setattr(temp_generation_config, k, kwargs[k])
                     
         out = self.model.generate(**inputs, **temp_generation_config)
