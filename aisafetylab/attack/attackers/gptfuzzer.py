@@ -239,6 +239,7 @@ class GPTFuzzerManager(BaseAttackManager):
         Main loop for the fuzzing process, repeatedly selecting, mutating, evaluating, and updating.
         """
         logging.info("Fuzzing started!")
+        latest_results = {}
         try:
             while not self.is_stop():
                 seed_instance = self.select_policy.select()[0]
@@ -285,12 +286,15 @@ class GPTFuzzerManager(BaseAttackManager):
                             "success": any(instance.eval_results),
                             "attack_success": {"score": instance.eval_results[0] if instance.eval_results else 0}
                         }
-                        self.save(result)
+                        latest_results[instance.query] = result
                 logging.info(f"Current iteration: {self.data.current_iteration}")
 
         except KeyboardInterrupt:
             logging.info("Fuzzing interrupted by user!")
         logging.info("Fuzzing finished!")
+
+        for result in latest_results.values():
+            self.save(result)
 
     def single_attack(self, instance: Example):
         """
