@@ -9,15 +9,17 @@ arXiv link: https://arxiv.org/pdf/2309.10253.pdf
 Source repository: https://github.com/sherdencooper/GPTFuzz.git
 """
 
-import logging
+from loguru import logger
 import random
 from tqdm import tqdm
+import json
 
 import copy
 from typing import List
 
 from dataclasses import dataclass, field, fields
 from typing import Any, Optional
+from aisafetylab.utils import Timer
 
 from aisafetylab.attack.attackers.base_attacker import BaseAttackManager
 from aisafetylab.attack.initialization.seed_template import SeedTemplate
@@ -89,11 +91,11 @@ class AttackData:
 
     @property
     def num_jailbreak(self):
-        return sum(i["score"] for i in self.eval_results)
+        return sum(i for i in self.eval_results)
 
     @property
     def num_reject(self):
-        return len(self.eval_results) - sum(i["score"] for i in self.eval_results)
+        return len(self.eval_results) - sum(i for i in self.eval_results)
 
 
 class GPTFuzzerInit(object):
@@ -180,17 +182,20 @@ class GPTFuzzerManager(BaseAttackManager):
         template_file="aisafetylab/attack/initialization/init_templates.json",
         device="cuda:0",
         res_save_path="./results/gptfuzzer_results.jsonl",
+        subset_slice=None
     ):
 
         super().__init__(res_save_path=res_save_path)
 
         _fields = fields(AttackConfig)
         local_vars = locals()
+        # logger.debug(f'local_vars: {local_vars}')
         _kwargs = {field.name: local_vars[field.name] for field in _fields}
         self.config = AttackConfig(**_kwargs)
+        logger.info(f"Attack configuration: {self.config}")
 
         self.attack_model = LocalModel(
-            model=AutoModelForCausalLM.from_pretrained(self.config.attack_model_path).cuda(),
+            model=AutoModelForCausalLM.from_pretrained(self.config.attack_model_path, torch_dtype="auto").to(device).eval(),
             tokenizer=AutoTokenizer.from_pretrained(self.config.attack_model_path),
             model_name=self.config.attack_model_name,
             generation_config=self.config.attack_model_generation_config
@@ -200,13 +205,13 @@ class GPTFuzzerManager(BaseAttackManager):
             self.target_model = self.attack_model
         else:
             self.target_model = LocalModel(
-                model=AutoModelForCausalLM.from_pretrained(self.config.target_model_path),
+                model=AutoModelForCausalLM.from_pretrained(self.config.target_model_path, torch_dtype="auto").to(device).eval(),
                 tokenizer=AutoTokenizer.from_pretrained(self.config.target_model_path),
                 model_name=self.config.target_model_name,
                 generation_config=self.config.target_model_generation_config
             )
 
-        self.jailbreak_datasets = AttackDataset(self.config.dataset_path)
+        self.jailbreak_datasets = AttackDataset(self.config.dataset_path, subset_slice=subset_slice)
 
         self.gptfuzzer_init = GPTFuzzerInit(self.config, self.jailbreak_datasets)
         self.data = self.gptfuzzer_init.data
@@ -238,7 +243,8 @@ class GPTFuzzerManager(BaseAttackManager):
         """
         Main loop for the fuzzing process, repeatedly selecting, mutating, evaluating, and updating.
         """
-        logging.info("Fuzzing started!")
+        logger.info("Fuzzing started!")
+        example_idx_to_results = {}
         try:
             while not self.is_stop():
                 seed_instance = self.select_policy.select()[0]
@@ -249,11 +255,15 @@ class GPTFuzzerManager(BaseAttackManager):
                     seed_instance.children.append(instance)
                     instance.index = len(self.data.prompt_nodes)
                     self.data.prompt_nodes.data.append(instance)
-
-                for mutator_instance in mutated_results:
+                logger.debug(f'mutated results length: {len(mutated_results)}')
+                for mutator_instance in tqdm(mutated_results):
                     self.temp_results = AttackDataset([])
+                    logger.info('Begin to get model responses')
                     for query_instance in tqdm(self.data.questions):
+                        logger.debug(f'mutator_instance: {mutator_instance}')
+                        t = Timer.start()
                         temp_instance = mutator_instance.copy()
+                        print(f'Copy costs {t.end()} seconds')
                         temp_instance.target_responses = []
                         temp_instance.eval_results = []
                         temp_instance.query = query_instance.query
@@ -266,31 +276,55 @@ class GPTFuzzerManager(BaseAttackManager):
                             input_seed = temp_instance.jailbreak_prompt.replace('{query}', temp_instance.query)
                         else:
                             input_seed = temp_instance.jailbreak_prompt + temp_instance.query
+                        
+                        logger.debug(f'input_seed: {input_seed}, target_model device: {self.target_model.device}')
                         response = self.target_model.chat(input_seed)
                         temp_instance.target_responses.append(response)
                         self.temp_results.data.append(temp_instance)
 
+                    logger.info(f'Begin to evaluate the model responses')
+                    logger.debug(f'evaluator device: {self.evaluator.model.device}')
                     self.evaluator(self.temp_results)
+                    logger.debug(f'Finish evaluating the model responses')
+
                     mutator_instance.level = seed_instance.level + 1
                     mutator_instance.visited_num = 0
 
                     self.update(self.temp_results)
                     for instance in self.temp_results:
                         self.data.attack_results.data.append(instance.copy())
+                        example_idx = self.data.query_to_idx[instance.query]
+                        if '{query}' in instance.jailbreak_prompt:
+                            final_query = instance.jailbreak_prompt.replace('{query}', instance.query)
+                        else:
+                            final_query = instance.jailbreak_prompt + instance.query
                         result = {
                             "example_idx": self.data.query_to_idx[instance.query],
                             "query": instance.query,
-                            "final_query": instance.jailbreak_prompt,
+                            "final_query": final_query,
                             "response": instance.target_responses[0] if instance.target_responses else "",
                             "success": any(instance.eval_results),
-                            "attack_success": {"score": instance.eval_results[0] if instance.eval_results else 0}
+                            "attack_success": instance.eval_results[0] if instance.eval_results else 0
                         }
-                        self.save(result)
-                logging.info(f"Current iteration: {self.data.current_iteration}")
+                        if example_idx not in example_idx_to_results:
+                            example_idx_to_results[example_idx] = result
+                        else:
+                            if result['attack_success']:
+                                example_idx_to_results[example_idx] = result
+                            elif not example_idx_to_results[example_idx]['attack_success']:
+                                example_idx_to_results[example_idx] = result
+                        # self.save(result)
+                logger.info(f"Current iteration: {self.data.current_iteration}")
+                
+                with open(self.res_save_path, 'w') as f:
+                    keys = sorted(example_idx_to_results.keys())
+                    for key in keys:
+                        f.write(json.dumps(example_idx_to_results[key], ensure_ascii=False) + '\n')
+                
 
         except KeyboardInterrupt:
-            logging.info("Fuzzing interrupted by user!")
-        logging.info("Fuzzing finished!")
+            logger.info("Fuzzing interrupted by user!")
+        logger.info("Fuzzing finished!")
 
     def single_attack(self, instance: Example):
         """
@@ -330,6 +364,7 @@ class GPTFuzzerManager(BaseAttackManager):
             ('max_reject', 'total_reject'),
             ('max_iteration', 'current_iteration'),
         ]
+        logger.debug(f'in is_stop check-> max_iteration: {self.config.max_iteration}, current_iteration: {self.data.current_iteration}')
         return any(getattr(self.config, max_attr) != -1 and getattr(self.data, curr_attr) >= getattr(self.config, max_attr) for
                    max_attr, curr_attr in checks)
 

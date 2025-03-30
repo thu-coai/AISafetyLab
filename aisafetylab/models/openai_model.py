@@ -28,7 +28,7 @@ class OpenAIModel(Model):
         """
         self.conversation.system_message = system_message
     
-    def generate(self, messages, clear_old_history=True, max_try=10, try_gap=5, **kwargs):
+    def generate(self, messages, clear_old_history=True, max_try=10, try_gap=5, gap_increase=5, **kwargs):
         """
         Generates a response based on messages that include conversation history.
         :param list[dict]|list[str]|str messages: A list of messages or a single message string.
@@ -63,13 +63,15 @@ class OpenAIModel(Model):
                 )
                 logger.debug(f"messages: {self.conversation.to_openai_api_messages()}\nresponse: {response}")
                 content = response.choices[0].message.content
-                ##print("content: ", content)
+                if content is None:
+                    raise Exception("Empty response")
                 return content
             except Exception as e:
                 logger.error(f"Failed to generate response within {self.model_name}: {e}, retrying...")
                 cur += 1
                 if cur < max_try:
                     sleep(try_gap)
+                    try_gap += gap_increase
                 else:
                     raise e
     

@@ -18,10 +18,10 @@ class ClassficationScorer(BaseScorer):
             attr_name = ['response']
         self.attr_name = attr_name
 
-    def set_model(self, model_path = None):
+    def set_model(self, model_path = None, device='cuda:0'):
         if model_path is None:
             model_path = 'hubert233/GPTFuzz'
-        self.model = RobertaForSequenceClassification.from_pretrained(model_path)
+        self.model = RobertaForSequenceClassification.from_pretrained(model_path).to(device)
         self.tokenizer = RobertaTokenizer.from_pretrained(model_path)
 
     def __call__(self, dataset: AttackDataset):
@@ -45,7 +45,7 @@ class ClassficationScorer(BaseScorer):
             seed = self._format(instance)
             is_jailbreak = self.score(seed)
             # Store raw boolean/int score
-            instance.eval_results.append(is_jailbreak)
+            instance.eval_results.append(is_jailbreak['score'])
             
             #TODO
             # # Update statistics

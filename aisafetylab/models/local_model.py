@@ -291,8 +291,10 @@ class LocalModel(Model):
             temp_generation_config.update(kwargs)
                     
         logger.debug(f'Generation config: {temp_generation_config}')
-                    
-        out = self.model.generate(**inputs, **temp_generation_config)
+        
+        with torch.no_grad():
+            out = self.model.generate(**inputs, **temp_generation_config)
+            
         response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)
         # response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=False)
 
