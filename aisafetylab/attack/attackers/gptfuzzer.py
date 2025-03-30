@@ -326,6 +326,9 @@ class GPTFuzzerManager(BaseAttackManager):
             logger.info("Fuzzing interrupted by user!")
         logger.info("Fuzzing finished!")
 
+        for result in latest_results.values():
+            self.save(result)
+
     def single_attack(self, instance: Example):
         """
         Perform an attack using a single query.
