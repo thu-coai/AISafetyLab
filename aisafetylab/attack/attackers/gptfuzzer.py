@@ -96,6 +96,18 @@ class AttackData:
     @property
     def num_reject(self):
         return len(self.eval_results) - sum(i for i in self.eval_results)
+    
+    def copy_for_eval(self):
+        """
+        Lightweight copy used during evaluation to avoid deepcopy overhead.
+        """
+        return AttackData(
+            query=self.query,
+            jailbreak_prompt=self.jailbreak_prompt,
+            attack_attrs=self.attack_attrs.copy(),
+            index=self.index,
+            level=self.level
+        )
 
 
 class GPTFuzzerInit(object):
@@ -248,6 +260,7 @@ class GPTFuzzerManager(BaseAttackManager):
         try:
             while not self.is_stop():
                 seed_instance = self.select_policy.select()[0]
+                logger.debug('begin to mutate')
                 mutated_results = self.single_attack(seed_instance)
                 for instance in mutated_results:
                     instance.parents = [seed_instance]
@@ -259,31 +272,42 @@ class GPTFuzzerManager(BaseAttackManager):
                 for mutator_instance in tqdm(mutated_results):
                     self.temp_results = AttackDataset([])
                     logger.info('Begin to get model responses')
+                    input_seeds = []
                     for query_instance in tqdm(self.data.questions):
-                        logger.debug(f'mutator_instance: {mutator_instance}')
-                        t = Timer.start()
-                        temp_instance = mutator_instance.copy()
-                        print(f'Copy costs {t.end()} seconds')
+                        if '{query}' in mutator_instance.jailbreak_prompt:
+                            input_seed = mutator_instance.jailbreak_prompt.replace('{query}', query_instance.query)
+                        else:
+                            input_seed = mutator_instance.jailbreak_prompt + query_instance.query
+                        input_seeds.append(input_seed)
+                    
+                    all_responses = self.target_model.batch_chat(input_seeds, batch_size=10)
+                            
+                    for idx, query_instance in enumerate(tqdm(self.data.questions)):
+                        # logger.debug(f'mutator_instance: {mutator_instance}')
+                        # t = Timer.start()
+                        temp_instance = mutator_instance.copy_for_eval()
+                        # print(f'Copy costs {t.end()} seconds')
                         temp_instance.target_responses = []
                         temp_instance.eval_results = []
                         temp_instance.query = query_instance.query
 
                         if temp_instance.query not in self.data.query_to_idx:
                             self.data.query_to_idx[temp_instance.query] = len(self.data.query_to_idx)
-                        query_idx = self.data.query_to_idx[temp_instance.query]
+                        # query_idx = self.data.query_to_idx[temp_instance.query]
 
-                        if '{query}' in temp_instance.jailbreak_prompt:
-                            input_seed = temp_instance.jailbreak_prompt.replace('{query}', temp_instance.query)
-                        else:
-                            input_seed = temp_instance.jailbreak_prompt + temp_instance.query
+                        # if '{query}' in temp_instance.jailbreak_prompt:
+                        #     input_seed = temp_instance.jailbreak_prompt.replace('{query}', temp_instance.query)
+                        # else:
+                        #     input_seed = temp_instance.jailbreak_prompt + temp_instance.query
                         
-                        logger.debug(f'input_seed: {input_seed}, target_model device: {self.target_model.device}')
-                        response = self.target_model.chat(input_seed)
+                        # # logger.debug(f'input_seed: {input_seed}, target_model device: {self.target_model.device}')
+                        # response = self.target_model.chat(input_seed)
+                        response = all_responses[idx]
                         temp_instance.target_responses.append(response)
                         self.temp_results.data.append(temp_instance)
 
                     logger.info(f'Begin to evaluate the model responses')
-                    logger.debug(f'evaluator device: {self.evaluator.model.device}')
+                    # logger.debug(f'evaluator device: {self.evaluator.model.device}')
                     self.evaluator(self.temp_results)
                     logger.debug(f'Finish evaluating the model responses')
 
@@ -292,12 +316,14 @@ class GPTFuzzerManager(BaseAttackManager):
 
                     self.update(self.temp_results)
                     for instance in self.temp_results:
-                        self.data.attack_results.data.append(instance.copy())
+                        # self.data.attack_results.data.append(instance.copy())
                         example_idx = self.data.query_to_idx[instance.query]
                         if '{query}' in instance.jailbreak_prompt:
                             final_query = instance.jailbreak_prompt.replace('{query}', instance.query)
                         else:
                             final_query = instance.jailbreak_prompt + instance.query
+                        logger.debug(f'final_query: {final_query}\nresponse: {instance.target_responses[0]}\nattack_success: {instance.eval_results[0]}')
+
                         result = {
                             "example_idx": self.data.query_to_idx[instance.query],
                             "query": instance.query,
@@ -326,8 +352,6 @@ class GPTFuzzerManager(BaseAttackManager):
             logger.info("Fuzzing interrupted by user!")
         logger.info("Fuzzing finished!")
 
-        for result in latest_results.values():
-            self.save(result)
 
     def single_attack(self, instance: Example):
         """

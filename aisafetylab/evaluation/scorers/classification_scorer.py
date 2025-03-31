@@ -43,7 +43,7 @@ class ClassficationScorer(BaseScorer):
         for response in instance.target_responses:
             instance.response = response
             seed = self._format(instance)
-            is_jailbreak = self.score(seed)
+            is_jailbreak = self.score(response=seed)
             # Store raw boolean/int score
             instance.eval_results.append(is_jailbreak['score'])
             

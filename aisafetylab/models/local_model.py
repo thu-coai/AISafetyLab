@@ -290,7 +290,7 @@ class LocalModel(Model):
             temp_generation_config = self.generation_config.copy()
             temp_generation_config.update(kwargs)
                     
-        logger.debug(f'Generation config: {temp_generation_config}')
+        # logger.debug(f'Generation config: {temp_generation_config}')
         
         with torch.no_grad():
             out = self.model.generate(**inputs, **temp_generation_config)
