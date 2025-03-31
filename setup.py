@@ -42,7 +42,8 @@ setup(
         'safetensors',
         'setproctitle',
         'torchrl',
-        'vllm'
+        'vllm',
+        'detoxify'
     ],
     python_requires=">=3.7",
     keywords=['ai safety', 
