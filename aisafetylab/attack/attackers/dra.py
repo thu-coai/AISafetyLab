@@ -37,6 +37,7 @@ class AttackConfig:
     evaluator_model_path: str
     device: str
     mode: str
+    max_new_tokens: int = 2048
 
 
 @dataclass
@@ -78,7 +79,7 @@ class DRAInit:
             if not config.target_tokenizer_path:
                 config.target_tokenizer_path = config.target_model_path
             tokenizer = AutoTokenizer.from_pretrained(config.target_tokenizer_path)
-            data.target_model = load_model(model=target_model, tokenizer=tokenizer, model_name=config.target_model_name)
+            data.target_model = load_model(model=target_model, tokenizer=tokenizer, model_name=config.target_model_name, generation_config={'max_length': config.max_new_tokens})
             data.tokenizer = tokenizer
         else:
             raise NotImplementedError
