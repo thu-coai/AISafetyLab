@@ -11,5 +11,7 @@ template_path: ""
 system_prompt: ""
 res_save_path: 'attack/results/dra_vicuna-7b-v1.5_harmbench_50.jsonl'
 device: "cuda:0"
-toxic_trunc: 0.5
-benign_trunc: 0.5
+default_toxic_trunc: 0.5
+default_benign_trunc: 0.5
+iters: 10
+em_t: 0.7
