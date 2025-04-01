@@ -67,10 +67,13 @@ class AttackStatus:
     current_suffix: str = ''
     current_response: str = ''
     total_attack_number: int = 0
+    final_evaluated: bool = False
+
 
     def reset(self, data: AttackData):
         self.toxic_trunc = data.default_toxic_trunc
         self.benign_trunc = data.default_benign_trunc
+        self.final_evaluated = False
 
 class DRAInit:
     def __init__(self):
@@ -269,14 +272,14 @@ class DRAMutator:
 
 
 class DRAEvaluator:
-    def __init__(self, evaluator_type, evaluator_model_path):
+    def __init__(self, evaluator_type, evaluator_model_path, device):
         self.evaluator_type = evaluator_type
         if evaluator_type == "pattern":
             self.evaluator = PatternScorer()
         elif evaluator_type == "llamaguard3":
-            self.evaluator = LlamaGuard3Scorer(model_path=evaluator_model_path, tokenizer_path=evaluator_model_path)
+            self.evaluator = LlamaGuard3Scorer(model_path=evaluator_model_path, tokenizer_path=evaluator_model_path, device=device)
         elif evaluator_type == "harmbench":
-            self.evaluator = HarmBenchScorer(model_path=evaluator_model_path)
+            self.evaluator = HarmBenchScorer(model_path=evaluator_model_path, device=device, tokenizer_path=evaluator_model_path)
         else:
             raise ValueError(f"Invalid evaluator type: {evaluator_type}")
 
@@ -363,7 +366,7 @@ class DRAManager(BaseAttackManager):
         self.init = DRAInit()
         self.selector = DRASelector()
         self.mutator = DRAMutator()
-        self.evaluator = DRAEvaluator(evaluator_type, evaluator_model_path)
+        self.evaluator = DRAEvaluator(evaluator_type, evaluator_model_path, device)
 
     
     def jailbreak_check(self):
@@ -439,11 +442,14 @@ class DRAManager(BaseAttackManager):
                         self.status.benign_trunc = min(self.status.benign_trunc + 0.1, 0.999)
                         continue
 
-                self.evaluator.evaluate(self.status)    
+                self.evaluator.evaluate(self.status)
 
                 if jailbreak_check_GCG and em and self.status.current_attack_success:
+                    self.status.final_evaluated = True
                     break
 
+            if not self.status.final_evaluated:
+                self.evaluator.evaluate(self.status)
             self.update_res(self.status.result_message)
             self.log(f'Attack on sample {self.status.current_idx - 1} success: {self.status.current_attack_success}')
             self.status.attack_success_number += self.status.current_attack_success
