@@ -283,11 +283,10 @@ class DRAEvaluator:
     def evaluate(self, status: AttackStatus):
         success = 0
         result_message = {}
-        result_message['example_idx'] = status.current_idx 
+        result_message['example_idx'] = status.current_idx - 1
         judge = self.evaluator.score(status.current_example, status.current_response).get('score', 0)
         result_message.update({'success': judge, 'final_query': status.attack_prompt, 'query': status.current_example, 'response': status.current_response})
-        if judge:
-            success = 1
+        if judge: success = 1
         status.result_message = result_message
         status.current_attack_success = success
 
@@ -351,7 +350,7 @@ class DRAManager(BaseAttackManager):
         api_key: str = None,
         base_url: str = None,
         device: str = None,
-        iters: int = 10,
+        iters: int = 20,
         default_toxic_trunc: float = 0.5,
         default_benign_trunc: float = 0.5,
         em_t: float = 0.7,
@@ -446,7 +445,7 @@ class DRAManager(BaseAttackManager):
                     break
 
             self.update_res(self.status.result_message)
-            self.log(f'Attack on sample {self.status.current_idx} success: {self.status.current_attack_success}')
+            self.log(f'Attack on sample {self.status.current_idx - 1} success: {self.status.current_attack_success}')
             self.status.attack_success_number += self.status.current_attack_success
             self.status.total_attack_number += 1
             self.status.reset(self.data)
@@ -454,6 +453,7 @@ class DRAManager(BaseAttackManager):
 
         self.log(f'ASR: {round(self.status.attack_success_number / self.status.total_attack_number * 100, 2)}%')
         self.log(f'Time cost: {timer.end()}s.')
+
 
     def mutate(self, prompt: str):
         self.init.init_manager_for_mutate(self.data)
