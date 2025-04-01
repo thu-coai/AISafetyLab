@@ -78,8 +78,8 @@ class DRAInit:
         self.template_initer = InitTemplates()
 
     def init_manager(self, config: AttackConfig, data: AttackData):
-        data.population = self.population_initer.init_population(data_path=config.attack_data_path)[:5]
-        # data.population = self.population_initer.init_population(data_path=config.attack_data_path)
+        # data.population = self.population_initer.init_population(data_path=config.attack_data_path)[:5]
+        data.population = self.population_initer.init_population(data_path=config.attack_data_path)
         self.init_manager_for_mutate(config, data)
         if config.target_model_path:
             target_model = AutoModelForCausalLM.from_pretrained(config.target_model_path).eval().to(config.device)
