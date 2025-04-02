@@ -1,0 +1,45 @@
+goals: []
+targets: []
+test_goals: []
+test_targets: []
+train_data: 'thu-coai/AISafetyLab_Datasets/harmbench_standard'
+train_data_offset: 0
+n_train_data: 50
+test_data: null
+test_data_offset: 0
+n_test_data: 0
+transfer: false
+progressive_goals: true
+progressive_models: true
+target_weight: 1.0
+control_weight: 0.0
+anneal: false
+incr_control: false
+stop_on_success: false
+verbose: true
+allow_non_ascii: false
+num_train_models: 1
+res_save_path: 'results/vicuna_gcg.jsonl'
+tokenizer_paths:
+  - '/data3/public_checkpoints/huggingface_models/vicuna-7b-v1.5'
+tokenizer_kwargs:
+  - use_fast: false
+model_paths:
+  - '/data3/public_checkpoints/huggingface_models/vicuna-7b-v1.5'
+model_kwargs:
+  - low_cpu_mem_usage: true
+    use_cache: false
+conversation_templates:
+  - 'vicuna'
+devices:
+  - 'cuda:0'
+attack: 'gcg'
+control_init: '! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !'
+n_steps: 500
+test_steps: 50
+batch_size: 512
+lr: 0.01
+topk: 256
+temp: 1
+filter_cand: true
+gbda_deterministic: true
