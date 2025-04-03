@@ -101,7 +101,7 @@ class VLLMModel(Model):
             
         return prompt
     
-    def chat(self, messages, **kwargs):
+    def chat(self, messages, use_tqdm=True, **kwargs):
         if isinstance(messages, str):
             messages = [
                 {
@@ -119,11 +119,11 @@ class VLLMModel(Model):
                 if k in self.generation_config.__annotations__.keys():
                     setattr(temp_generation_config, k, kwargs[k])
 
-        outputs = self.model.generate([input_text], temp_generation_config)
+        outputs = self.model.generate([input_text], temp_generation_config, use_tqdm=use_tqdm)
         generated_text = outputs[0].outputs[0].text
         return generated_text
         
-    def batch_chat(self, batch_messages, **kwargs):
+    def batch_chat(self, batch_messages, use_tqdm=True, **kwargs):
         input_texts = []
         for messages in batch_messages:
             if isinstance(messages, str):
@@ -143,7 +143,9 @@ class VLLMModel(Model):
             for k in kwargs:
                 if k in self.generation_config.__annotations__.keys():
                     setattr(temp_generation_config, k, kwargs[k])
+                    
+        logger.debug(f'input_texts: {input_texts}')
 
-        outputs = self.model.generate(input_texts, temp_generation_config)
+        outputs = self.model.generate(input_texts, temp_generation_config, use_tqdm=use_tqdm)
         generated_texts = [output.outputs[0].text for output in outputs]
         return generated_texts

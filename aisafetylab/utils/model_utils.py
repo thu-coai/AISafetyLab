@@ -15,6 +15,7 @@ from transformers import (
     GPTJForCausalLM,
     GPTNeoXForCausalLM,
     LlamaForCausalLM,
+    Qwen2ForCausalLM,
 )
 
 def get_developer(model_name):
@@ -404,6 +405,7 @@ def get_embedding_matrix(model):
         isinstance(model, LlamaForCausalLM)
         or isinstance(model, MistralForCausalLM)
         or isinstance(model, GemmaForCausalLM)
+        or isinstance(model, Qwen2ForCausalLM)
     ):
         return model.model.embed_tokens.weight
     elif isinstance(model, GPTNeoXForCausalLM):

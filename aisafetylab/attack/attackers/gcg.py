@@ -1544,19 +1544,25 @@ class GCGMainManager(BaseAttackManager):
             # response = self.target_model.chat(final_query)
             # new generation
             # response = chat(self.target_model, final_query, defenders=defenders)
-            messages = [{'role': 'user', 'content': final_query}, {'role': 'assistant', 'content': None}]
-            conversation = self.target_conv_template.copy()
-            for message in messages:
-                conversation.append_message(message['role'], message['content'])
-            prompt = conversation.get_prompt()
-            # logger.info(f"Prompt: {prompt}")
-            if prompt.strip().startswith(self.target_tokenizer.bos_token):
-                inputs = self.target_tokenizer(prompt, return_tensors='pt', add_special_tokens=False).to(self.config.devices[0])
-            else:
-                inputs = self.target_tokenizer(prompt, return_tensors='pt', add_special_tokens=True).to(self.config.devices[0])
+            # messages = [{'role': 'user', 'content': final_query}, {'role': 'assistant', 'content': None}]
+            # conversation = self.target_conv_template.copy()
+            # for message in messages:
+            #     conversation.append_message(message['role'], message['content'])
+            # prompt = conversation.get_prompt()
+            # # logger.info(f"Prompt: {prompt}")
+            # if prompt.strip().startswith(self.target_tokenizer.bos_token):
+            #     inputs = self.target_tokenizer(prompt, return_tensors='pt', add_special_tokens=False).to(self.config.devices[0])
+            # else:
+            #     inputs = self.target_tokenizer(prompt, return_tensors='pt', add_special_tokens=True).to(self.config.devices[0])
+            messages = [{'role': 'user', 'content': final_query}]
+            inputs = self.target_tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True, return_tensors='pt').to(self.config.devices[0])
             # logger.info(f'input str:{self.target_tokenizer.decode(inputs.input_ids[0], skip_special_tokens=False, clean_up_tokenization_spaces=False)}')
-            outputs = self.target_model.generate(**inputs, do_sample=False, max_new_tokens=32)
-            response = self.target_tokenizer.decode(outputs[0][inputs.input_ids.size(1):], skip_special_tokens=True)
+            # outputs = self.target_model.generate(**inputs, do_sample=False, max_new_tokens=32)
+            outputs = self.target_model.generate(input_ids=inputs, do_sample=False, max_new_tokens=32)
+
+            # response = self.target_tokenizer.decode(outputs[0][inputs.input_ids.size(1):], skip_special_tokens=True)
+            response = self.target_tokenizer.decode(outputs[0][inputs.size(1):], skip_special_tokens=True)
+
             judge = self.evaluator.evaluate(goal, response)
             self.log(
                 dict(

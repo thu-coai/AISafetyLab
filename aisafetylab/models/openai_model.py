@@ -28,7 +28,7 @@ class OpenAIModel(Model):
         """
         self.conversation.system_message = system_message
     
-    def generate(self, messages, clear_old_history=True, max_try=5, try_gap=3, **kwargs):
+    def generate(self, messages, clear_old_history=True, max_try=10, try_gap=3, **kwargs):
         """
         Generates a response based on messages that include conversation history.
         :param list[dict]|list[str]|str messages: A list of messages or a single message string.

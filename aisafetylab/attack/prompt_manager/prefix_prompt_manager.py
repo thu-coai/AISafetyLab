@@ -207,13 +207,124 @@ class GCGAttackPrompt(object):
         
         return ids[new_start:new_end]
 
+    # def _update_ids(self):
+
+    #     self.conv_template.append_message(self.conv_template.roles[0], f"{self.goal} {self.control}")
+    #     self.conv_template.append_message(self.conv_template.roles[1], f"{self.target}")
+    #     prompt = self.conv_template.get_prompt()
+    #     encoding = self.tokenizer(prompt)
+    #     toks = encoding.input_ids
+
+    #     if self.conv_template.name in ['llama-2', 'mistral']: # use_fast=True for mistral
+    #         self.conv_template.messages = []
+
+    #         # self.conv_template.append_message(self.conv_template.roles[0], None)
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt().strip()).input_ids)
+    #         # logger.info(f'prompt: {self.conv_template.get_prompt()}, toks: {self.tokenizer.convert_ids_to_tokens(toks)}')
+    #         self._user_role_slice = slice(None, len(toks))
+
+    #         self.conv_template.append_message(self.conv_template.roles[0], self.goal)
+    #         # self.conv_template.update_last_message(f"{self.goal}")
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt().strip()).input_ids)
+    #         self._goal_slice = slice(self._user_role_slice.stop, max(self._user_role_slice.stop, self.get_real_end(toks)))
+
+    #         separator = ' ' if self.goal and self.control[0] != ' ' else ''
+    #         self.conv_template.update_last_message(f"{self.goal}{separator}{self.control}")
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt().strip()).input_ids)
+    #         self._control_slice = slice(self._goal_slice.stop, self.get_real_end(toks))
+    #         # logger.info(f'control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, len control_slice: {len(toks[self._control_slice])}')
+
+    #         self.conv_template.append_message(self.conv_template.roles[1], None)
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+    #         self._assistant_role_slice = slice(self._control_slice.stop, len(toks))
+
+    #         self.conv_template.update_last_message(f"{self.target}")
+    #         # logger.debug(f'prompt: {self.conv_template.get_prompt()}')
+    #         # logger.debug(f'tokenizer: {self.tokenizer}')
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            
+    #         target_end_pos = self.get_real_end(toks)
+            
+    #         self._target_slice = slice(self._assistant_role_slice.stop, target_end_pos)
+    #         self._loss_slice = slice(self._assistant_role_slice.stop-1, target_end_pos - 1)
+            
+    #         # logger.debug(f'toks: {self.tokenizer.convert_ids_to_tokens(toks)}, user_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._user_role_slice])}, goal_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._goal_slice])}, control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, assistant_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._assistant_role_slice])}')
+        
+    #     else:
+    #         self.conv_template.messages = []
+
+    #         self.conv_template.append_message(self.conv_template.roles[0], None)
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+    #         # logger.info(f'prompt: {self.conv_template.get_prompt()}, toks: {self.tokenizer.convert_ids_to_tokens(toks)}')
+    #         self._user_role_slice = slice(None, len(toks))
+
+    #         self.conv_template.update_last_message(f"{self.goal}")
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+    #         self._goal_slice = slice(self._user_role_slice.stop, max(self._user_role_slice.stop, self.get_real_end(toks)))
+
+    #         separator = ' ' if self.goal and self.control[0] != ' ' else ''
+    #         self.conv_template.update_last_message(f"{self.goal}{separator}{self.control}")
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+    #         self._control_slice = slice(self._goal_slice.stop, self.get_real_end(toks))
+    #         # logger.info(f'control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, len control_slice: {len(toks[self._control_slice])}')
+
+    #         self.conv_template.append_message(self.conv_template.roles[1], None)
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+    #         self._assistant_role_slice = slice(self._control_slice.stop, len(toks))
+
+    #         self.conv_template.update_last_message(f"{self.target}")
+    #         # logger.debug(f'prompt: {self.conv_template.get_prompt()}')
+    #         # logger.debug(f'tokenizer: {self.tokenizer}')
+    #         toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            
+    #         target_end_pos = self.get_real_end(toks)
+            
+    #         self._target_slice = slice(self._assistant_role_slice.stop, target_end_pos)
+    #         self._loss_slice = slice(self._assistant_role_slice.stop-1, target_end_pos - 1)
+            
+    #         # logger.debug(f'toks: {self.tokenizer.convert_ids_to_tokens(toks)}, user_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._user_role_slice])}, goal_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._goal_slice])}, control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, assistant_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._assistant_role_slice])}'
+
+
+    #     self.input_ids = torch.tensor(toks[:self._target_slice.stop], device='cpu')
+    #     self.conv_template.messages = []
+    
+    def custom_add_generation_prompt(self, messages):
+        TEXT = "FKDJSFJFKJDLJF"
+        next_role = ''
+        if len(messages) == 0:
+            next_role = 'user'
+        else:
+            if messages[-1]['role'] == 'user':
+                next_role = 'assistant'
+            else:
+                # system or assistant
+                next_role = 'user'
+        
+        prompt = self.tokenizer.apply_chat_template(messages + [{'role': next_role, 'content': TEXT}], tokenize=False)
+        idx = prompt.find(TEXT)
+        ret = prompt[:idx]
+        if ret[-1] == ' ':
+            ret = ret[:-1]
+        return ret
+    
+    def custom_apply_chat_template(self, messages, remove_special_end=False):
+        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False)
+        if remove_special_end:
+            last_text = messages[-1]['content']
+            idx = prompt.rindex(last_text)
+            prompt = prompt[:idx + len(last_text)]
+        
+        return prompt
+        
     def _update_ids(self):
 
-        self.conv_template.append_message(self.conv_template.roles[0], f"{self.goal} {self.control}")
-        self.conv_template.append_message(self.conv_template.roles[1], f"{self.target}")
-        prompt = self.conv_template.get_prompt()
+        # self.conv_template.append_message(self.conv_template.roles[0], f"{self.goal} {self.control}")
+        # self.conv_template.append_message(self.conv_template.roles[1], f"{self.target}")
+        messages = [{'role': 'user', 'content': f"{self.goal} {self.control}"}, {'role': 'assistant', 'content': f"{self.target}"}]
+        # prompt = self.conv_template.get_prompt()
+        prompt = self.custom_apply_chat_template(messages, remove_special_end=False)
         encoding = self.tokenizer(prompt)
-        toks = encoding.input_ids
+        toks = self.fix_ids(encoding.input_ids)
 
         if self.conv_template.name in ['llama-2', 'mistral']: # use_fast=True for mistral
             self.conv_template.messages = []
@@ -251,33 +362,36 @@ class GCGAttackPrompt(object):
             # logger.debug(f'toks: {self.tokenizer.convert_ids_to_tokens(toks)}, user_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._user_role_slice])}, goal_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._goal_slice])}, control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, assistant_role_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._assistant_role_slice])}')
         
         else:
-            self.conv_template.messages = []
+            # self.conv_template.messages = []
 
-            self.conv_template.append_message(self.conv_template.roles[0], None)
-            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            # self.conv_template.append_message(self.conv_template.roles[0], None)
+            _prompt = self.custom_add_generation_prompt([])
+            toks = self.fix_ids(self.tokenizer(_prompt).input_ids)
             # logger.info(f'prompt: {self.conv_template.get_prompt()}, toks: {self.tokenizer.convert_ids_to_tokens(toks)}')
             self._user_role_slice = slice(None, len(toks))
 
-            self.conv_template.update_last_message(f"{self.goal}")
-            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
-            self._goal_slice = slice(self._user_role_slice.stop, max(self._user_role_slice.stop, self.get_real_end(toks)))
+            _prompt = self.custom_apply_chat_template([{'role': 'user', 'content': self.goal}], remove_special_end=True)
+            # self.conv_template.update_last_message(f"{self.goal}")
+            toks = self.fix_ids(self.tokenizer(_prompt).input_ids)
+            self._goal_slice = slice(self._user_role_slice.stop, len(toks))
 
             separator = ' ' if self.goal and self.control[0] != ' ' else ''
-            self.conv_template.update_last_message(f"{self.goal}{separator}{self.control}")
-            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
-            self._control_slice = slice(self._goal_slice.stop, self.get_real_end(toks))
+            _prompt = self.custom_apply_chat_template([{'role': 'user', 'content': f"{self.goal}{separator}{self.control}"}], remove_special_end=True)
+            toks = self.fix_ids(self.tokenizer(_prompt).input_ids)
+            self._control_slice = slice(self._goal_slice.stop, len(toks))
             # logger.info(f'control_slice: {self.tokenizer.convert_ids_to_tokens(toks[self._control_slice])}, len control_slice: {len(toks[self._control_slice])}')
-
-            self.conv_template.append_message(self.conv_template.roles[1], None)
-            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            _prompt = self.custom_add_generation_prompt([{'role': 'user', 'content': f"{self.goal}{separator}{self.control}"}])
+            toks = self.fix_ids(self.tokenizer(_prompt).input_ids)
             self._assistant_role_slice = slice(self._control_slice.stop, len(toks))
 
-            self.conv_template.update_last_message(f"{self.target}")
+            _prompt = self.custom_apply_chat_template([{'role': 'user', 'content': f"{self.goal}{separator}{self.control}"}, {'role': 'assistant', 'content': self.target}], remove_special_end=True)
+            # self.conv_template.update_last_message(f"{self.target}")
             # logger.debug(f'prompt: {self.conv_template.get_prompt()}')
             # logger.debug(f'tokenizer: {self.tokenizer}')
-            toks = self.fix_ids(self.tokenizer(self.conv_template.get_prompt()).input_ids)
+            toks = self.fix_ids(self.tokenizer(_prompt).input_ids)
             
-            target_end_pos = self.get_real_end(toks)
+            # target_end_pos = self.get_real_end(toks)
+            target_end_pos = len(toks)
             
             self._target_slice = slice(self._assistant_role_slice.stop, target_end_pos)
             self._loss_slice = slice(self._assistant_role_slice.stop-1, target_end_pos - 1)
@@ -449,7 +563,8 @@ class ModelWorker(object):
     def __init__(self, model_path, model_kwargs, tokenizer, conv_template, device):
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            torch_dtype=torch.float16,
+            # torch_dtype=torch.float16,
+            torch_dtype="auto",
             trust_remote_code=True,
             **model_kwargs
         ).to(device).eval()

@@ -95,7 +95,8 @@ class AttackConfig:
     keep_last_n: int
     n_iterations: int
     devices: str
-    
+    target_system_prompt: Optional[str] = None
+
 
 
     
@@ -287,7 +288,8 @@ class PAIRManager(BaseAttackManager):
                 keep_last_n: int=3,
                 n_iterations: int=3,
                 devices:str = 'cuda:0',
-                res_save_path: str='./results/pair_results.jsonl',    
+                res_save_path: str='./results/pair_results.jsonl',  
+                target_system_prompt: str=None,  
                 delete_existing_res: bool=False
         ):
         super().__init__(res_save_path, delete_existing_res)
@@ -412,13 +414,18 @@ class PAIRManager(BaseAttackManager):
                 # print("jaibreak prompt: ", stream.jailbreak_prompt)
                 stream.jailbreak_prompts.append(stream.jailbreak_prompt)
                 
+                if self.config.target_system_prompt is not None:
+                    input_message = [{'role': 'system', 'content': self.config.target_system_prompt}, {'role': 'user', 'content': stream.jailbreak_prompt}]
+                else:
+                    input_message = stream.jailbreak_prompt
+                
                 if isinstance(self.target_model, LocalModel):
                     stream.target_responses.append(
-                            self.target_model.chat(stream.jailbreak_prompt, max_new_tokens=self.config.target_max_n_tokens,
+                            self.target_model.chat(input_message, max_new_tokens=self.config.target_max_n_tokens,
                                                     temperature=self.config.target_temperature, top_p=self.config.target_top_p))
                 else:
                     stream.target_responses.append(
-                            self.target_model.chat(stream.jailbreak_prompt, max_tokens=self.config.target_max_n_tokens,
+                            self.target_model.chat(input_message, max_tokens=self.config.target_max_n_tokens,
                                                     temperature=self.config.target_temperature, top_p=self.config.target_top_p))
                 
                 # Get judge scores
