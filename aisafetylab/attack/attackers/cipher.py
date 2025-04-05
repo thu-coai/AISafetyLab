@@ -1,5 +1,5 @@
 """
-AdvPrompter Attack Method
+Cipher Attack Method
 ============================================
 This Class achieves a jailbreak method describe in the paper below.
 This part of code is based on the code from the paper.

@@ -7,7 +7,6 @@ from .func_utils import Timer
 from loguru import logger
 import json
 import numpy as np
-from omegaconf import OmegaConf, ListConfig
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -582,23 +581,6 @@ def get_total_allocated_memory():
         total_allocated_memory += torch.cuda.memory_allocated(f"cuda:{i}")
     return total_allocated_memory / 1e9
 
-
-class NpEncoder(json.JSONEncoder):
-    def default(self, obj):
-        # Handle numpy types
-        if isinstance(obj, np.integer):
-            return int(obj)
-        if isinstance(obj, np.floating):
-            return float(obj)
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-
-        # Handle Hydra's ListConfig
-        if isinstance(obj, ListConfig):
-            return OmegaConf.to_container(obj, resolve=True)
-
-        # Fallback to default JSONEncoder behavior
-        return super().default(obj)
 
 from peft import LoraConfig, PeftModel, get_peft_model
 from torch.utils.data import DataLoader, Dataset

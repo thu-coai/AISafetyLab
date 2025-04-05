@@ -29,6 +29,7 @@ attack_manager = PAIRManager(
     eval_model_path="gpt-4o-mini",
     openai_key=api_key,
     openai_url=api_base,
+    target_system_message=None,
     attack_max_n_tokens=500,
     max_n_attack_attempts=3,
     attack_temperature=1,

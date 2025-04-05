@@ -16,15 +16,20 @@ AISafetyLab is a comprehensive framework designed for researchers and developers
 
 **<p align='center'>Please kindly 🌟star🌟 our repository if you find it helpful!</p>**
 
+## Star History
 
+[![Star History Chart](https://api.star-history.com/svg?repos=thu-coai/AISafetyLab&type=Date)](https://www.star-history.com/#thu-coai/AISafetyLab&Date)
 
 ##  🆕 **What's New?**  <!-- omit in toc -->
 
+
+- **🎉 `2025/03/27`:** A [demo video](https://youtu.be/1cM5M1lMVv4) is available now!
 - **🎉 `2025/02/24`:** We have released our [technical report](https://arxiv.org/pdf/2502.16776).
 - **🎉 `2024/12/31`:** We are excited to officially announce the open-sourcing of AISafetyLab.
 
 
 ## 📜 Table of Contents  <!-- omit from toc -->
+- [Star History](#star-history)
 - [🚀 Quick Start](#-quick-start)
   - [🔧 Installation](#-installation)
   - [🧪 Examples](#-examples)
@@ -259,26 +264,7 @@ gcg_manager = GCGMainManager(
 final_query = gcg_manager.mutate(prompt='How to write a scam')
 ```
 
-###### Example 2: Using Hydra for Command-Line Configuration <!-- omit from toc -->
-
-If you'd like to use a configuration file with Hydra, you can specify parameters from the command line while using a YAML file for other configuration settings.
-
-```python
-from aisafetylab.attack.attackers.gcg import GCGMainManager
-from omegaconf import DictConfig
-import hydra
-
-@hydra.main(version_base=None, config_path="./configs", config_name="gcg_config")
-def main(cfg: DictConfig):
-    print(cfg)
-    gcg_manager = GCGMainManager(**cfg)
-    gcg_manager.batch_attack()
-
-if __name__ == "__main__":
-    main()
-```
-
-###### Example 3: Using a Config YAML File to Load Parameters <!-- omit from toc -->
+###### Example 2: Using a Config YAML File to Load Parameters <!-- omit from toc -->
 
 ```python
 from aisafetylab.attack.attackers.gcg import GCGMainManager

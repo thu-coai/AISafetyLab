@@ -338,7 +338,7 @@ class AutoDANManager(BaseAttackManager):
             .eval()
             .to(device)
         )
-        if tokenizer_kwargs:
+        if tokenizer_kwargs is None:
             tokenizer = AutoTokenizer.from_pretrained(target_model_name_or_path)
         else:
             tokenizer = AutoTokenizer.from_pretrained(target_model_name_or_path, **tokenizer_kwargs)

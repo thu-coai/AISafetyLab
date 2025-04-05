@@ -1,0 +1,43 @@
+# Method
+method: safe_unlearning
+deepspeed: ./configs/ds_config.json
+# Model hyperparameters
+model_name_or_path: /data3/public_checkpoints/huggingface_models/vicuna-7b-v1.5
+# Dataset hyperparameters
+dataset: /data/yangjunxiao/AISafetyLab/demo/training_data
+overwrite_cache: true
+cutoff_len: 1536
+max_length: 1536
+max_input_length: 1536
+max_output_length: 1536
+# Training hyperparameters
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 1
+lr_scheduler_type: cosine
+warmup_steps: 0
+logging_steps: 1
+save_total_limit: 3
+learning_rate: 0.00001
+num_train_epochs: 3
+bf16: true
+plot_loss: true
+adam_beta1: 0.9
+adam_beta2: 0.95
+evaluation_strategy: "no"
+eval_accumulation_steps: 1
+save_strategy: 'epoch'
+save_only_model: true
+report_to: 'tensorboard'
+load_best_model_at_end: false
+remove_unused_columns: false
+half_precision_backend: 'auto'
+gradient_checkpointing: true
+unlearning_alpha: 0.3
+unlearning_beta: 1.0
+unlearning_theta: 0.5
+
+# Logging and saving configuration
+logging_dir: ./log
+save_steps: 1000
+output_dir: ./ckpts/vicuna-7b-v1.5-safeunlearning_test
+overwrite_output_dir: true

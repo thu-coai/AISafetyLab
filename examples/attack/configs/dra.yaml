@@ -1,0 +1,17 @@
+attack_data_path: thu-coai/AISafetyLab_Datasets/harmbench_standard
+target_model_path: "lmsys/vicuna-7b-v1.5"
+target_model_name: "vicuna_v1.1"
+demo_num: 1
+lang: en
+evaluator_type: "harmbench" # pattern, harmbench
+evaluator_model_path: "cais/HarmBench-Llama-2-13b-cls"
+detoxify_model_path: "/path/to/toxic_original-c1212f89.ckpt" # can be downloaded from https://github.com/unitaryai/detoxify/releases/download/v0.1-alpha/toxic_original-c1212f89.ckpt
+detoxify_config_path: "/path/to/toxic-bert" # can be downloaded from https://huggingface.co/unitary/toxic-bert
+template_path: ""
+system_prompt: ""
+res_save_path: 'attack/results/dra_vicuna-7b-v1.5_harmbench_50.jsonl'
+device: "cuda:0"
+default_toxic_trunc: 0.5
+default_benign_trunc: 0.5
+iters: 20
+em_t: 0.7

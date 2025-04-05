@@ -98,8 +98,6 @@ class AttackConfig:
     target_system_prompt: Optional[str] = None
 
 
-
-    
 class PAIRInit:
     def __init__(self, config: AttackConfig):
         self.config = config
@@ -151,8 +149,8 @@ class PAIRInit:
                 base_url=base_url,
             )
         else:
-            model=AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16, low_cpu_mem_usage=True,).eval().to(device)
-            tokenizer=AutoTokenizer.from_pretrained(model_path)
+            model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto").eval().to(device)
+            tokenizer = AutoTokenizer.from_pretrained(model_path)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
                 tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -162,7 +160,7 @@ class PAIRInit:
                 tokenizer=tokenizer,
                 model_name=model_name,
             )
-    
+
 class PAIRMutator:
     def __init__(self, attack_model):
         self.mutations = [HistoricalInsight(attack_model, attr_name=[])]
@@ -275,6 +273,7 @@ class PAIRManager(BaseAttackManager):
                 eval_model_path: str,
                 openai_key: Optional[str],
                 openai_url: Optional[str],
+                target_system_message: str=None,
                 attack_max_n_tokens: int=500,
                 max_n_attack_attempts: int=3,
                 attack_temperature: float=1,
@@ -298,9 +297,10 @@ class PAIRManager(BaseAttackManager):
         _kwargs = {field.name: local_vars[field.name] for field in _fields}
         self.config = AttackConfig(**_kwargs)
         self.init = PAIRInit(self.config)
-        
+
         self.attack_model = self.init.attack_model
         self.target_model = self.init.target_model
+        self.target_system_message = target_system_message
         self.eval_model = self.init.eval_model
         self.attack_dataset = self.init.attack_dataset
         self.mutator = PAIRMutator(self.attack_model)
@@ -312,7 +312,7 @@ class PAIRManager(BaseAttackManager):
             name="PAIR",
             num=2
         )
-        
+
     def extract_json(self, s):
         r"""
         Try to extract and return a prompt in a JSON structure from the given string.
@@ -355,9 +355,9 @@ class PAIRManager(BaseAttackManager):
         :param ~Example instance: The instance used to attack the target model.
         :return: ~Example: The instance with the jailbreak result saved in its eval_results.
         """
-        
+
         ##print(f"Processing instance: {instance}")
-        
+
         instance.jailbreak_prompt = self.attack_seed.format(query=instance.query,
                                                             reference_responses=instance.target)
         self.attack_model.set_system_message(self.attack_system_message.format(query=instance.query,
@@ -386,9 +386,8 @@ class PAIRManager(BaseAttackManager):
                 # generate new attack prompt
                 stream.attack_attrs['attack_conversation'].append_message(
                     stream.attack_attrs['attack_conversation'].roles[0], add_to_conv)
-                
-                prompt_gen_jailbreak_prompt = stream.attack_attrs['attack_conversation'].to_openai_api_messages()
 
+                prompt_gen_jailbreak_prompt = stream.attack_attrs['attack_conversation'].to_openai_api_messages()
 
                 for attack_try in range(self.config.max_n_attack_attempts):
                     # logger.debug(f'Prompt for generating jailbreak prompt: {prompt_gen_jailbreak_prompt}')
@@ -401,16 +400,16 @@ class PAIRManager(BaseAttackManager):
                         new_prompt, json_str = self.extract_json(new_instance.jailbreak_prompt)
 
                     if new_prompt is not None:
-                        logger.debug(f'Generated jailbreak prompt: {new_prompt}')
+                        # logger.debug(f'Generated jailbreak prompt: {new_prompt}')
                         stream.jailbreak_prompt = new_prompt
                         stream.attack_attrs['attack_conversation'].update_last_message(json_str)
                         break
-                    
+
                     if attack_try == self.config.max_n_attack_attempts - 1:
                         logger.info(f"Failed to generate new attack prompts after {self.config.max_n_attack_attempts} attempts. Terminating.")
                         stream.jailbreak_prompt = stream.query
                 # Get target responses
-                
+
                 # print("jaibreak prompt: ", stream.jailbreak_prompt)
                 stream.jailbreak_prompts.append(stream.jailbreak_prompt)
                 
@@ -420,6 +419,7 @@ class PAIRManager(BaseAttackManager):
                     input_message = stream.jailbreak_prompt
                 
                 if isinstance(self.target_model, LocalModel):
+                    
                     stream.target_responses.append(
                             self.target_model.chat(input_message, max_new_tokens=self.config.target_max_n_tokens,
                                                     temperature=self.config.target_temperature, top_p=self.config.target_top_p))
@@ -427,6 +427,8 @@ class PAIRManager(BaseAttackManager):
                     stream.target_responses.append(
                             self.target_model.chat(input_message, max_tokens=self.config.target_max_n_tokens,
                                                     temperature=self.config.target_temperature, top_p=self.config.target_top_p))
+
+                logger.debug(f'Prompt for generating target response: {input_message}\nTarget response: {stream.target_responses[-1]}')
                 
                 # Get judge scores
                 if self.eval_model is None:
@@ -466,9 +468,9 @@ class PAIRManager(BaseAttackManager):
                     final_jailbreak_prompt = stream.jailbreak_prompts[i]
                     final_response = stream.target_responses[i]
                     instance = stream
-            
+
             logger.info(f'stream eval_results: {stream.eval_results}')
-        
+
         instance.jailbreak_prompt = final_jailbreak_prompt
         self.log({
             "example_idx": example_idx,
@@ -480,7 +482,6 @@ class PAIRManager(BaseAttackManager):
             "response": final_response,
         }, save=True)
         return instance
-        
 
     def attack(self, save_path='PAIR_attack_result.jsonl'):
         r"""
@@ -507,7 +508,7 @@ class PAIRManager(BaseAttackManager):
         # self.attack_dataset.save_to_jsonl(save_path)
         logger.info(
             'Jailbreak result saved at {}!'.format(os.path.join(os.path.dirname(os.path.abspath(__file__)), save_path)))
-        
+
     def mutate(self, prompt: str, target: str):
         instance = AttackData()
         if 'query' in instance.__dict__:
@@ -518,9 +519,6 @@ class PAIRManager(BaseAttackManager):
             setattr(instance, 'target', target)
         else:
             instance._data['target'] = target
-            
+
         instance = self.single_attack(instance)
         return instance.jailbreak_prompt
-
-
-
