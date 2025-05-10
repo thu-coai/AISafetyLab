@@ -124,6 +124,7 @@ class VLLMModel(Model):
         return generated_text
         
     def batch_chat(self, batch_messages, use_tqdm=True, **kwargs):
+        # print(f'get into batch_chat')
         input_texts = []
         for messages in batch_messages:
             if isinstance(messages, str):
@@ -144,8 +145,10 @@ class VLLMModel(Model):
                 if k in self.generation_config.__annotations__.keys():
                     setattr(temp_generation_config, k, kwargs[k])
                     
-        logger.debug(f'input_texts: {input_texts}')
+        # logger.debug(f'input_texts: {input_texts}')
 
         outputs = self.model.generate(input_texts, temp_generation_config, use_tqdm=use_tqdm)
         generated_texts = [output.outputs[0].text for output in outputs]
+        # print(f'input_text: {input_texts[0]}\ngenerated_text: {self.tokenizer.decode(outputs[0].outputs[0].token_ids, skip_special_tokens=False)}')
+
         return generated_texts

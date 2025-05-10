@@ -28,7 +28,7 @@ class OpenAIModel(Model):
         """
         self.conversation.system_message = system_message
     
-    def generate(self, messages, clear_old_history=True, max_try=10, try_gap=5, gap_increase=5, **kwargs):
+    def generate(self, messages, clear_old_history=True, max_try=30, try_gap=5, gap_increase=5, **kwargs):
         """
         Generates a response based on messages that include conversation history.
         :param list[dict]|list[str]|str messages: A list of messages or a single message string.
@@ -56,12 +56,14 @@ class OpenAIModel(Model):
             temp_gen_config.update(kwargs)
         while cur < max_try:
             try:
+                logger.debug(f"model_name: {self.model_name}, messages: {self.conversation.to_openai_api_messages()}")
+
                 response = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=self.conversation.to_openai_api_messages(),
                     **temp_gen_config
                 )
-                logger.debug(f"messages: {self.conversation.to_openai_api_messages()}\nresponse: {response}")
+                logger.debug(f"response: {response}")
                 content = response.choices[0].message.content
                 if content is None:
                     raise Exception("Empty response")
@@ -75,10 +77,10 @@ class OpenAIModel(Model):
                 else:
                     raise e
     
-    def chat(self, messages, clear_old_history=True, max_try=5, try_gap=3, **kwargs):
+    def chat(self, messages, clear_old_history=True, max_try=30, try_gap=5, **kwargs):
         return self.generate(messages, clear_old_history, max_try, try_gap, **kwargs)
     
-    def batch_chat(self, batch_messages, clear_old_history=True, max_try=5, try_gap=3, **kwargs):
+    def batch_chat(self, batch_messages, clear_old_history=True, max_try=30, try_gap=5, **kwargs):
         return [self.chat(messages, clear_old_history, max_try, try_gap, **kwargs) for messages in batch_messages]
     
     def get_response(self, prompts_list, max_n_tokens=None, no_template=False, gen_config={}):
