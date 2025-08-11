@@ -338,6 +338,7 @@ We integrate seven widely applied evaluation methods for safety detection, each 
 - HarmBenchScorer: This scorer utilizes the [Harmbench classification model](https://huggingface.co/cais/HarmBench-Llama-2-13b-cls) to assess the safety of the response.
 - LlamaGuard3Scorer: This scorer utilizes [Llama-Guard-3-8B](https://huggingface.co/meta-llama/Llama-Guard-3-8B) to assess the safety of the response. It also provides the unsafe category if the response is judged as unsafe.
 - PromptedLLMScorer: This scorer prompts a model to assess the safety of the response. We incorporate 4 judge prompts from [Qi et al.](https://arxiv.org/abs/2310.03693), [Zhang et al.](https://arxiv.org/abs/2402.16444), [Mehrotra et al.](https://arxiv.org/abs/2312.02119) and [Chao et al.](https://arxiv.org/abs/2310.08419).
+- ReasoningShieldScorer: This scorer utilizes [ReasoningShield](https://huggingface.co/ReasoningShield/ReasoningShield-3B) to assess the safety of the reasoning traces.
 
 All the scorers use the `score` method to conduct safety evaluation. This method takes a query and its associated response as input, and returns a dict with a key "score", indicating the final judgment of the scorer. A score of `0` represents a safe response, while a score of `1` indicates an unsafe response. Additional outputs from the scorer are also included in the returned dict.
 
@@ -525,6 +526,9 @@ Contributions are highly encouraged, so feel free to submit pull requests or pro
 ### Evaluation
 
 #### Detection
+
+- [2025 / 5] [ReasoningShield: Content Safety Detection over Reasoning Traces of Large Reasoning Models](https://arxiv.org/abs/2505.17244). Changyi Li, Jiayi Wang, ..., Min Yang. [Fudan University, Shanghai Innovation Institute].
+**TL;DR**: The paper introduces ReasoningShield, a safety moderation model tailored for detecting hidden risks concealed within seemingly harmless reasoning traces before reaching the final answers.
 
 - [2024 / 7] [ShieldGemma: Generative AI Content Moderation Based on Gemma](https://arxiv.org/abs/2407.21772). Wenjun Zeng, ..., Oscar Wahltinez. [Google].
 **TL;DR**: The paper presents ShieldGemma, a comprehensive suite of LLM-based safety content moderation models built upon Gemma2.
