@@ -5,6 +5,9 @@ from loguru import logger
 from .base_model import Model
 import openai
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Dict, Any, Optional
+from tqdm import tqdm
 
 class OpenAIModel(Model):
     def __init__(self, model_name, base_url, api_key, generation_config=None):
@@ -56,14 +59,14 @@ class OpenAIModel(Model):
             temp_gen_config.update(kwargs)
         while cur < max_try:
             try:
-                logger.debug(f"model_name: {self.model_name}, messages: {self.conversation.to_openai_api_messages()}")
+                # logger.debug(f"model_name: {self.model_name}, messages: {self.conversation.to_openai_api_messages()}")
 
                 response = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=self.conversation.to_openai_api_messages(),
                     **temp_gen_config
                 )
-                logger.debug(f"response: {response}")
+                # logger.debug(f"response: {response}")
                 content = response.choices[0].message.content
                 if content is None:
                     raise Exception("Empty response")
@@ -80,8 +83,62 @@ class OpenAIModel(Model):
     def chat(self, messages, clear_old_history=True, max_try=30, try_gap=5, **kwargs):
         return self.generate(messages, clear_old_history, max_try, try_gap, **kwargs)
     
-    def batch_chat(self, batch_messages, clear_old_history=True, max_try=30, try_gap=5, **kwargs):
-        return [self.chat(messages, clear_old_history, max_try, try_gap, **kwargs) for messages in batch_messages]
+    def batch_chat(self, batch_messages, clear_old_history=True, max_try=30, try_gap=5, max_workers=10, show_progress=True, **kwargs):
+        """
+        并发处理多个聊天请求
+        
+        :param list batch_messages: 批量消息列表
+        :param bool clear_old_history: 是否清除历史
+        :param int max_try: 最大尝试次数
+        :param int try_gap: 重试间隔时间
+        :param int max_workers: 最大并发线程数
+        :param bool show_progress: 是否显示进度条
+        :param kwargs: 其他参数传递给chat方法
+        :return: 按输入顺序排列的响应列表
+        """
+        if not batch_messages:
+            return []
+            
+        # 为了保证返回结果的顺序与输入顺序一致，我们需要跟踪每个请求的索引
+        results = [None] * len(batch_messages)
+        total = len(batch_messages)
+        
+        def process_single_request(index_and_message):
+            index, messages = index_and_message
+            try:
+                response = self.chat(messages, clear_old_history, max_try, try_gap, **kwargs)
+                return index, response
+            except Exception as e:
+                logger.error(f"Error processing request {index}: {e}")
+                return index, f"ERROR: {str(e)}"
+        
+        # 限制并发线程数，防止资源过度使用
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 提交所有任务，并记录它们的索引
+            future_to_index = {executor.submit(process_single_request, (i, msg)): i 
+                              for i, msg in enumerate(batch_messages)}
+            
+            # 处理完成的任务，并显示进度条
+            if show_progress:
+                # 使用tqdm创建进度条
+                pbar = tqdm(total=total, desc="Processing requests", unit="req")
+                completed = 0
+                
+                for future in as_completed(future_to_index):
+                    index, response = future.result()
+                    results[index] = response
+                    completed += 1
+                    pbar.update(1)
+                    pbar.set_postfix({"completed": f"{completed}/{total}"})
+                
+                pbar.close()
+            else:
+                # 不显示进度条
+                for future in as_completed(future_to_index):
+                    index, response = future.result()
+                    results[index] = response
+        
+        return results
     
     def get_response(self, prompts_list, max_n_tokens=None, no_template=False, gen_config={}):
         if isinstance(prompts_list[0], str):
