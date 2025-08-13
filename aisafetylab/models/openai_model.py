@@ -41,17 +41,23 @@ class OpenAIModel(Model):
         """
         
         ##print("messages: ", messages)
-        if clear_old_history:
-            self.conversation.messages = []
+        # not consistent with parallel request
+        # if clear_old_history:
+        #     self.conversation.messages = []
+        # if isinstance(messages, str):
+        #     messages = [messages]
+        # if isinstance(messages[0], dict):
+        #     if 'role' in messages[0] and messages[0]['role'] == 'system':
+        #         self.conversation.set_system_message(messages[0]['content'])
+        #         messages = messages[1:]
+        #     messages = [msg['content'] for msg in messages]
+        # for index, message in enumerate(messages):
+        #     self.conversation.append_message(self.conversation.roles[index % 2], message)
+            
         if isinstance(messages, str):
-            messages = [messages]
-        if isinstance(messages[0], dict):
-            if 'role' in messages[0] and messages[0]['role'] == 'system':
-                self.conversation.set_system_message(messages[0]['content'])
-                messages = messages[1:]
-            messages = [msg['content'] for msg in messages]
-        for index, message in enumerate(messages):
-            self.conversation.append_message(self.conversation.roles[index % 2], message)
+            processed_messages = [{'role': 'user', 'content': messages}]
+        else:
+            processed_messages = messages
             
         cur = 0
         temp_gen_config = self.generation_config.copy()
@@ -63,7 +69,8 @@ class OpenAIModel(Model):
 
                 response = self.client.chat.completions.create(
                     model=self.model_name,
-                    messages=self.conversation.to_openai_api_messages(),
+                    # messages=self.conversation.to_openai_api_messages(),
+                    messages = processed_messages,
                     **temp_gen_config
                 )
                 # logger.debug(f"response: {response}")
@@ -126,6 +133,7 @@ class OpenAIModel(Model):
                 
                 for future in as_completed(future_to_index):
                     index, response = future.result()
+                    logger.debug(f'index: {index}\nprompt: {batch_messages[index]}\nresponse: {response}')
                     results[index] = response
                     completed += 1
                     pbar.update(1)
