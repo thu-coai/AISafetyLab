@@ -19,6 +19,7 @@ from loguru import logger
 from typing import List, Optional
 
 import torch
+import json
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from tqdm import tqdm
@@ -95,6 +96,7 @@ class AttackConfig:
     keep_last_n: int
     n_iterations: int
     devices: str
+    target_system_prompt: Optional[str] = None
 
 
 class PAIRInit:
@@ -148,8 +150,8 @@ class PAIRInit:
                 base_url=base_url,
             )
         else:
-            model=AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16, low_cpu_mem_usage=True,).eval().to(device)
-            tokenizer=AutoTokenizer.from_pretrained(model_path)
+            model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto").eval().to(device)
+            tokenizer = AutoTokenizer.from_pretrained(model_path)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
                 tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -286,7 +288,9 @@ class PAIRManager(BaseAttackManager):
                 keep_last_n: int=3,
                 n_iterations: int=3,
                 devices:str = 'cuda:0',
-                res_save_path: str='./results/pair_results.jsonl',    
+                res_save_path: str='./results/pair_results.jsonl',  
+                target_system_prompt: str=None,
+                continue_previous: bool=True,
                 delete_existing_res: bool=False
         ):
         super().__init__(res_save_path, delete_existing_res)
@@ -294,6 +298,19 @@ class PAIRManager(BaseAttackManager):
         local_vars = locals()
         _kwargs = {field.name: local_vars[field.name] for field in _fields}
         self.config = AttackConfig(**_kwargs)
+        
+        if continue_previous and os.path.exists(res_save_path):
+            latest_idx = -1
+            with open(res_save_path) as f:
+                for line in f:
+                    temp_data = json.loads(line)
+                    latest_idx = max(latest_idx, temp_data['example_idx'])
+            
+            new_data_offset = latest_idx + 1
+            self.config.data_offset = new_data_offset
+            logger.info(f'As continue_previous is set to True, and the res_save_path {res_save_path} exists, the data_offset is automatically set to {new_data_offset}.')
+            
+        
         self.init = PAIRInit(self.config)
 
         self.attack_model = self.init.attack_model
@@ -410,25 +427,23 @@ class PAIRManager(BaseAttackManager):
 
                 # print("jaibreak prompt: ", stream.jailbreak_prompt)
                 stream.jailbreak_prompts.append(stream.jailbreak_prompt)
-                prompt_messages = (
-                    stream.jailbreak_prompt
-                    if self.target_system_message is None
-                    else [
-                        {"role": "system", "content": self.target_system_message},
-                        {"role": "user", "content": stream.jailbreak_prompt},
-                    ]
-                )
+                
+                if self.config.target_system_prompt is not None:
+                    input_message = [{'role': 'system', 'content': self.config.target_system_prompt}, {'role': 'user', 'content': stream.jailbreak_prompt}]
+                else:
+                    input_message = stream.jailbreak_prompt
+                
                 if isinstance(self.target_model, LocalModel):
                     
                     stream.target_responses.append(
-                            self.target_model.chat(prompt_messages, max_new_tokens=self.config.target_max_n_tokens,
+                            self.target_model.chat(input_message, max_new_tokens=self.config.target_max_n_tokens,
                                                     temperature=self.config.target_temperature, top_p=self.config.target_top_p))
                 else:
                     stream.target_responses.append(
-                            self.target_model.chat(prompt_messages, max_tokens=self.config.target_max_n_tokens,
+                            self.target_model.chat(input_message, max_tokens=self.config.target_max_n_tokens,
                                                     temperature=self.config.target_temperature, top_p=self.config.target_top_p))
 
-                logger.debug(f'Prompt for generating target response: {prompt_messages}\nTarget response: {stream.target_responses[-1]}')
+                logger.debug(f'Prompt for generating target response: {input_message}\nTarget response: {stream.target_responses[-1]}')
                 
                 # Get judge scores
                 if self.eval_model is None:
