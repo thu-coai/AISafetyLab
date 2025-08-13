@@ -5,6 +5,8 @@ from typing import Optional, List
 from loguru import logger
 import re
 from tqdm import trange
+from vllm import LLM, SamplingParams
+import os
 
 
 REASONINGSHIELD_PROMPT = """
@@ -74,11 +76,13 @@ class ReasoningShieldScorer(BaseScorer):
         model_path: str,
         device: str = "cuda:0",
         tokenizer_path: Optional[str] = None,
+        vllm_mode: bool = False,
     ):
         super().__init__()
         self.model_path = model_path
         self.tokenizer_path = tokenizer_path
         self.device = device
+        self.vllm_mode = vllm_mode
         self.generation_config = {
             "do_sample": False,
             "max_new_tokens": 1024,
@@ -87,27 +91,53 @@ class ReasoningShieldScorer(BaseScorer):
 
     def _load_model(self) -> None:
         logger.info("loading model...")
-        if torch.cuda.is_available():
-            self.device = torch.device(self.device)
-        else:
-            self.device = torch.device("cpu")
-
         if self.tokenizer_path is None:
             self.tokenizer_path = self.model_path
 
-        # Left padding for batched generation with causal LM
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.tokenizer_path, trust_remote_code=True, padding_side="left"
-        )
-        if self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+        if self.vllm_mode:
+            logger.info('Loading model in vllm mode')
+            # Left padding for batched generation with causal LM
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.tokenizer_path, trust_remote_code=True, padding_side="left"
+            )
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+                
+            # Initialize vLLM model with the specified device
+            ori_device = os.environ.get("CUDA_VISIBLE_DEVICES", None)
+            os.environ['CUDA_VISIBLE_DEVICES'] = self.device.replace('cuda:', '')
+            self.model = LLM(model=self.model_path, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=0.8)
+            if ori_device:
+                os.environ['CUDA_VISIBLE_DEVICES'] = ori_device
+            else:
+                os.environ.pop('CUDA_VISIBLE_DEVICES')
+                
+            # Convert generation config to vLLM SamplingParams
+            generation_params = {}
+            if 'max_new_tokens' in self.generation_config:
+                generation_params['max_tokens'] = self.generation_config['max_new_tokens']
+            if 'do_sample' in self.generation_config and not self.generation_config['do_sample']:
+                generation_params['temperature'] = 0.0
+            self.sampling_params = SamplingParams(**generation_params)
+        else:
+            if torch.cuda.is_available():
+                self.device = torch.device(self.device)
+            else:
+                self.device = torch.device("cpu")
 
-        model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            trust_remote_code=True,
-            torch_dtype=torch.bfloat16,
-        )
-        self.model = model.to(self.device).eval()
+            # Left padding for batched generation with causal LM
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.tokenizer_path, trust_remote_code=True, padding_side="left"
+            )
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+
+            model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                trust_remote_code=True,
+                torch_dtype=torch.bfloat16,
+            )
+            self.model = model.to(self.device).eval()
         logger.info("finish loading model")
 
     @staticmethod
@@ -131,25 +161,33 @@ class ReasoningShieldScorer(BaseScorer):
 
     def score(self, query: str, response: str):
         prompt_text = self._build_prompt(query, response)
-        inputs = self.tokenizer(prompt_text, return_tensors="pt", padding=True).to(
-            self.device
-        )
-        with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                pad_token_id=self.tokenizer.eos_token_id,
-                **self.generation_config,
+        
+        if self.vllm_mode:
+            # For vLLM mode
+            outputs = self.model.generate([prompt_text], self.sampling_params)
+            response_text = outputs[0].outputs[0].text.strip()
+        else:
+            # For standard mode
+            inputs = self.tokenizer(prompt_text, return_tensors="pt", padding=True).to(
+                self.device
             )
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    pad_token_id=self.tokenizer.eos_token_id,
+                    **self.generation_config,
+                )
 
-        full_decoded_sequences = self.tokenizer.batch_decode(
-            outputs, skip_special_tokens=True
-        )
-        prompt_only_sequences = self.tokenizer.batch_decode(
-            inputs["input_ids"], skip_special_tokens=True
-        )
-        response_text = (
-            full_decoded_sequences[0][len(prompt_only_sequences[0]) :].strip()
-        )
+            full_decoded_sequences = self.tokenizer.batch_decode(
+                outputs, skip_special_tokens=True
+            )
+            prompt_only_sequences = self.tokenizer.batch_decode(
+                inputs["input_ids"], skip_special_tokens=True
+            )
+            response_text = (
+                full_decoded_sequences[0][len(prompt_only_sequences[0]) :].strip()
+            )
+            
         risk_score = self._extract_risk_score(response_text)
         return {"score": risk_score, "output": response_text}
 
@@ -161,24 +199,35 @@ class ReasoningShieldScorer(BaseScorer):
             prompts.append(self._build_prompt(query, resp))
 
         results = []
-        for start_index in trange(0, len(prompts), batch_size):
-            batch_prompts = prompts[start_index : start_index + batch_size]
-            inputs = self.tokenizer(
-                batch_prompts, return_tensors="pt", padding=True
-            ).to(self.device)
-            with torch.no_grad():
-                outputs = self.model.generate(
-                    **inputs,
-                    pad_token_id=self.tokenizer.eos_token_id,
-                    **self.generation_config,
-                )
-
-            for sequence_index, input_ids in enumerate(inputs["input_ids"]):
-                decoded = self.tokenizer.decode(
-                    outputs[sequence_index][len(input_ids) :],
-                    skip_special_tokens=True,
-                ).strip()
+        
+        if self.vllm_mode:
+            # Process all prompts in batches using vLLM
+            outputs = self.model.generate(prompts, self.sampling_params)
+            
+            for output in outputs:
+                decoded = output.outputs[0].text.strip()
                 risk_score = self._extract_risk_score(decoded)
                 results.append({"score": risk_score, "output": decoded})
+        else:
+            # Process with PyTorch
+            for start_index in trange(0, len(prompts), batch_size):
+                batch_prompts = prompts[start_index : start_index + batch_size]
+                inputs = self.tokenizer(
+                    batch_prompts, return_tensors="pt", padding=True
+                ).to(self.device)
+                with torch.no_grad():
+                    outputs = self.model.generate(
+                        **inputs,
+                        pad_token_id=self.tokenizer.eos_token_id,
+                        **self.generation_config,
+                    )
+
+                for sequence_index, input_ids in enumerate(inputs["input_ids"]):
+                    decoded = self.tokenizer.decode(
+                        outputs[sequence_index][len(input_ids) :],
+                        skip_special_tokens=True,
+                    ).strip()
+                    risk_score = self._extract_risk_score(decoded)
+                    results.append({"score": risk_score, "output": decoded})
 
         return results
