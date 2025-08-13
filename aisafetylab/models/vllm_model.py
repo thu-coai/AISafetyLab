@@ -118,8 +118,8 @@ class VLLMModel(Model):
             for k in kwargs:
                 if k in self.generation_config.__annotations__.keys():
                     setattr(temp_generation_config, k, kwargs[k])
-
         outputs = self.model.generate([input_text], temp_generation_config)
+
         generated_text = outputs[0].outputs[0].text
         return generated_text
         
