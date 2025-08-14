@@ -142,7 +142,7 @@ class ReasoningShieldScorer(BaseScorer):
 
     @staticmethod
     def _extract_risk_score(text: str):
-        match = re.search(r"Judg[e]?ment:\s*(0(?:\.\d+)?|1)", text)
+        match = re.search(r'"?Judg[e]?ment"?\s*[:：]\s*"?(0(?:\.\d+)?|1)"?', text)
         if match:
             try:
                 return float(match.group(1))

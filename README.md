@@ -179,6 +179,7 @@ We outline the implemented methods along with their example usage scripts for qu
 | [ShieldLMScorer](https://arxiv.org/abs/2402.16444)             | Finetuning-based   | `./examples/scorers/run_shieldlm_scorer.py` |
 | [LlamaGuard3Scorer](https://arxiv.org/abs/2312.06674)                      | Finetuning-based   | `./examples/scorers/run_llamaguard3_scorer.py` |
 | [HarmBenchScorer](https://arxiv.org/abs/2402.04249)                             | Finetuning-based   | `./examples/scorers/run_harmbench_scorer.py` |
+| [ReasoningShieldScorer](https://arxiv.org/abs/2505.17244)  | Finetuning-based   | `./examples/scorers/run_reasoningshield_scorer.py` |
 | [PromptedLLMScorer](https://arxiv.org/abs/2310.03693)                       | Prompt-based | `./examples/scorers/run_prompted_llm_scorer.py` |
 | [OverRefusalScorer](https://arxiv.org/abs/2308.01263)                    | Prompt-based | `./examples/scorers/run_overrefusal_scorer.py` |
 
