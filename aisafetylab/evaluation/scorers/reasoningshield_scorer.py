@@ -77,6 +77,7 @@ class ReasoningShieldScorer(BaseScorer):
         device: str = "cuda:0",
         tokenizer_path: Optional[str] = None,
         vllm_mode: bool = False,
+        gpu_memory_utilization=0.8
     ):
         super().__init__()
         self.model_path = model_path
@@ -87,6 +88,7 @@ class ReasoningShieldScorer(BaseScorer):
             "do_sample": False,
             "max_new_tokens": 1024,
         }
+        self.gpu_memory_utilization = gpu_memory_utilization
         self._load_model()
 
     def _load_model(self) -> None:
@@ -106,7 +108,7 @@ class ReasoningShieldScorer(BaseScorer):
             # Initialize vLLM model with the specified device
             ori_device = os.environ.get("CUDA_VISIBLE_DEVICES", None)
             os.environ['CUDA_VISIBLE_DEVICES'] = self.device.replace('cuda:', '')
-            self.model = LLM(model=self.model_path, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=0.8)
+            self.model = LLM(model=self.model_path, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=self.gpu_memory_utilization)
             if ori_device:
                 os.environ['CUDA_VISIBLE_DEVICES'] = ori_device
             else:
@@ -147,7 +149,9 @@ class ReasoningShieldScorer(BaseScorer):
             try:
                 return float(match.group(1))
             except ValueError:
+                logger.error(f'Fail to extract score from ReasoningShieldScorer output: {text}')
                 return None
+        logger.error(f'Fail to extract score from ReasoningShieldScorer output: {text}')
         return None
 
     def _build_prompt(self, query: str, response: str) -> str:
