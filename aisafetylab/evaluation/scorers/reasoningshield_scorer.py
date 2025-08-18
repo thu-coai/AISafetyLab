@@ -106,14 +106,9 @@ class ReasoningShieldScorer(BaseScorer):
                 self.tokenizer.pad_token = self.tokenizer.eos_token
                 
             # Initialize vLLM model with the specified device
-            ori_device = os.environ.get("CUDA_VISIBLE_DEVICES", None)
-            os.environ['CUDA_VISIBLE_DEVICES'] = self.device.replace('cuda:', '')
-            self.model = LLM(model=self.model_path, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=self.gpu_memory_utilization)
-            if ori_device:
-                os.environ['CUDA_VISIBLE_DEVICES'] = ori_device
-            else:
-                os.environ.pop('CUDA_VISIBLE_DEVICES')
-                
+            
+            self.model = LLM(model=self.model_path, device=self.device, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=self.gpu_memory_utilization)
+            
             # Convert generation config to vLLM SamplingParams
             generation_params = {}
             if 'max_new_tokens' in self.generation_config:

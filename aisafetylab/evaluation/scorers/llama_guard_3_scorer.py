@@ -52,14 +52,8 @@ class LlamaGuard3Scorer(BaseScorer):
             self.tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_path, trust_remote_code=True)
             self.tokenizer.pad_token = self.tokenizer.eos_token
             # Initialize vLLM model
-            ori_device = os.environ.get("CUDA_VISIBLE_DEVICES", None)
-            os.environ['CUDA_VISIBLE_DEVICES'] = self.device.replace('cuda:', '')
-            self.model = LLM(model=self.model_path, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=0.8)
-            if ori_device:
-                os.environ['CUDA_VISIBLE_DEVICES'] = ori_device
-            else:
-                os.environ.pop('CUDA_VISIBLE_DEVICES')
-                
+            self.model = LLM(model=self.model_path, device=self.device, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=0.8)
+            
             from vllm import SamplingParams
             # Convert generation config to vLLM SamplingParams
             generation_params = {}

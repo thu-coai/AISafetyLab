@@ -1,5 +1,6 @@
 from aisafetylab.models import LocalModel, OpenAIModel
 from loguru import logger
+from time import sleep
 
 def generate(object, messages, input_field_name='input_ids', **kwargs):
     
@@ -49,34 +50,48 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
 
     elif isinstance(object, OpenAIModel):
         # OpenAI模型处理
-        if hasattr(object, 'conversation') and hasattr(object.conversation, 'messages'):
-            object.conversation.messages = []
-            for index, message in enumerate(messages):
-                object.conversation.append_message(object.conversation.roles[index % 2], message)
-            gen_config = object.generation_config
-            gen_config.update(kwargs)
-            response = object.client.chat.completions.create(
-                model=object.model_name,
-                messages=object.conversation.to_openai_api_messages(),
-                **gen_config
-            )
-        else:
-            # 直接构建消息列表
-            if len(messages) == 1:
-                api_messages = [{"role": "user", "content": messages[0]}]
+        max_cnt = 10
+        try_cnt = 0
+        while try_cnt < max_cnt:
+            try_cnt += 1
+            try:
+                if hasattr(object, 'conversation') and hasattr(object.conversation, 'messages'):
+                    object.conversation.messages = []
+                    for index, message in enumerate(messages):
+                        object.conversation.append_message(object.conversation.roles[index % 2], message)
+                    gen_config = object.generation_config
+                    gen_config.update(kwargs)
+                    response = object.client.chat.completions.create(
+                        model=object.model_name,
+                        messages=object.conversation.to_openai_api_messages(),
+                        **gen_config
+                    )
+                else:
+                    # 直接构建消息列表
+                    if len(messages) == 1:
+                        api_messages = [{"role": "user", "content": messages[0]}]
+                    else:
+                        api_messages = []
+                        for index, message in enumerate(messages):
+                            role = "user" if index % 2 == 0 else "assistant"
+                            api_messages.append({"role": role, "content": message})
+                    gen_config = object.generation_config
+                    gen_config.update(kwargs)
+                    response = object.client.chat.completions.create(
+                        model=object.model_name,
+                        messages=api_messages,
+                        **gen_config
+                    )
+                output = response.choices[0].message.content
+            except Exception as e:
+                logger.warning(f"API calling fails. Retry: ({try_cnt}/{max_cnt}). Error message: {e}")
+                if try_cnt >= max_cnt:
+                    logger.error("Reach max try times for api calling. Exit.")
+                    break
+                sleep(3)
+                continue
             else:
-                api_messages = []
-                for index, message in enumerate(messages):
-                    role = "user" if index % 2 == 0 else "assistant"
-                    api_messages.append({"role": role, "content": message})
-            gen_config = object.generation_config
-            gen_config.update(kwargs)
-            response = object.client.chat.completions.create(
-                model=object.model_name,
-                messages=api_messages,
-                **gen_config
-            )
-        output = response.choices[0].message.content
+                break
         
 
     return output
