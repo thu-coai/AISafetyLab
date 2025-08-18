@@ -41,8 +41,10 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
             'attention_mask': attention_mask,
             'pad_token_id': object.tokenizer.pad_token_id
         }
-        generate_kwargs.update(kwargs)
-        output_ids = object.model.generate(**generate_kwargs, **object.generation_config)
+        gen_config = object.generation_config
+        gen_config.update(kwargs)
+        # logger.debug(f'Generation config: {gen_config}')
+        output_ids = object.model.generate(**generate_kwargs, **gen_config)
         output = object.tokenizer.decode(output_ids[0][input_length:], skip_special_tokens=True)
 
     elif isinstance(object, OpenAIModel):
@@ -51,11 +53,12 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
             object.conversation.messages = []
             for index, message in enumerate(messages):
                 object.conversation.append_message(object.conversation.roles[index % 2], message)
+            gen_config = object.generation_config
+            gen_config.update(kwargs)
             response = object.client.chat.completions.create(
                 model=object.model_name,
                 messages=object.conversation.to_openai_api_messages(),
-                **kwargs,
-                **object.generation_config
+                **gen_config
             )
         else:
             # 直接构建消息列表
@@ -66,12 +69,12 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
                 for index, message in enumerate(messages):
                     role = "user" if index % 2 == 0 else "assistant"
                     api_messages.append({"role": role, "content": message})
-            
+            gen_config = object.generation_config
+            gen_config.update(kwargs)
             response = object.client.chat.completions.create(
                 model=object.model_name,
                 messages=api_messages,
-                **kwargs,
-                **object.generation_config
+                **gen_config
             )
         output = response.choices[0].message.content
         

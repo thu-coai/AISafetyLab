@@ -39,6 +39,7 @@ class AttackConfig:
     openai_url: Optional[str]
     evaluator_type: str
     evaluator_model_path: str
+    target_max_n_tokens: int = 1536
     tree_width: int = 10
     tree_depth: int = 10
     root_num: int = 1
