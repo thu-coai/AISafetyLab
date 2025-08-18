@@ -152,16 +152,18 @@ class TAPSelector:
         return self.constraintor(dataset)
 
 class TAPEvaluator:
-    def __init__(self, eval_model, evaluator_type, evaluator_model_path):
+    def __init__(self, eval_model, evaluator_type, evaluator_model_path, device):
         self.evaluator = PromptedLLMScorer(eval_model, prompt_template = 'Mehrotra2023TAP')
         
         self.evaluator_type = evaluator_type
         if evaluator_type == "pattern":
             self.scorer = PatternScorer()
         elif evaluator_type == "harmbench":
-            self.scorer = HarmBenchScorer(model_path=evaluator_model_path, tokenizer_path=evaluator_model_path)
+            logger.info(f"Using HarmBenchScorer")
+            self.scorer = HarmBenchScorer(model_path=evaluator_model_path, tokenizer_path=evaluator_model_path, device=device)
         elif evaluator_type == "llamaguard3":
-            self.scorer = LlamaGuard3Scorer(model_path=evaluator_model_path, tokenizer_path=evaluator_model_path)
+            logger.info(f"Using LlamaGuard3Scorer")
+            self.scorer = LlamaGuard3Scorer(model_path=evaluator_model_path, tokenizer_path=evaluator_model_path, device=device)
         else:
             raise ValueError(f"Invalid evaluator type: {evaluator_type}")
 
@@ -299,7 +301,7 @@ class TAPManager(BaseAttackManager):
         )
 
         self.selector = TAPSelector(self.data.attack_dataset, self.eval_model, self.config.tree_width)
-        self.evaluator = TAPEvaluator(self.eval_model, evaluator_type, evaluator_model_path)
+        self.evaluator = TAPEvaluator(self.eval_model, evaluator_type, evaluator_model_path, devices)
 
         self.current_jailbreak = 0
 

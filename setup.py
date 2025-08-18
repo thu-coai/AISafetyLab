@@ -42,7 +42,7 @@ setup(
         'safetensors',
         'setproctitle',
         'torchrl',
-        'vllm',
+        'vllm>=0.7.3,<0.11.0',
         'detoxify'
     ],
     python_requires=">=3.7",

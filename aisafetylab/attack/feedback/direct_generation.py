@@ -1,4 +1,5 @@
 from aisafetylab.models import LocalModel, OpenAIModel
+from loguru import logger
 
 def generate(object, messages, input_field_name='input_ids', **kwargs):
     
@@ -23,9 +24,11 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
         output = object.tokenizer.decode(output_ids[0][input_length:], skip_special_tokens=True)
 
     elif isinstance(object, OpenAIModel):
+        messages = object.conversation.to_openai_api_messages()
+        logger.debug(f'Generating with OpenAI API, messages: {messages}')
         response = object.client.chat.completions.create(
             model=object.model_name,
-            messages=object.conversation.to_openai_api_messages(),
+            messages=messages,
             **kwargs,
             **object.generation_config
         )
