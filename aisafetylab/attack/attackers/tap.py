@@ -363,7 +363,9 @@ class TAPManager(BaseAttackManager):
 
                     new_dataset = self.selector.constraint(new_dataset)
 
-                    self.target_model.conversation.messages = []
+                    # 清空对话历史，确保每次生成都是独立的
+                    if hasattr(self.target_model, 'conversation') and hasattr(self.target_model.conversation, 'messages'):
+                        self.target_model.conversation.messages = []
                     for ex in new_dataset:
                         if isinstance(self.target_model, OpenAIModel):
                             ex.target_responses = [
