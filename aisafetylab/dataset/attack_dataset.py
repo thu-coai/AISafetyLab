@@ -28,18 +28,36 @@ class AttackDataset:
 
             self.data = [Example(**d) for d in _data]
 
-        elif 'thu-coai/AISafetyLab_Datasets' in path:
-            file_name = path.split('/')[-1]
-            if '_' in file_name:
-                data_name = file_name.split('_')[0]
-                split = file_name.split('_')[1]
-            else:
-                data_name = file_name
-                split = 'test'
+        
 
-            _data = load_dataset("thu-coai/AISafetyLab_Datasets", data_name, split=split)
+        # ... 你的其他代码 ...
+
+        elif 'thu-coai/AISafetyLab_Datasets' in path:
+            # 1. 定义你本地数据集文件夹的路径
+            #    请根据你的实际情况修改这个路径
+            local_data_dir = "/data3/zhangqinglin/project/AISafetyLab/AISafetyLab_Datasets"
+
+            # 2. 从输入路径中解析出不带扩展名的文件名
+            #    这部分保留了原始代码的逻辑，例如 path 可能为 ".../advbench"
+            file_name_without_ext = path.split('/')[-1]
+
+            # 3. 构建本地数据文件的完整路径 (我们假设文件都是 .json 格式)
+            local_file_path = os.path.join(local_data_dir, file_name_without_ext + ".json")
+
+            # (可选但推荐) 检查文件是否存在，如果不存在则报错
+            if not os.path.exists(local_file_path):
+                raise FileNotFoundError(
+                    f"错误：找不到本地数据文件 '{local_file_path}'\n"
+                    f"请检查 'local_data_dir' 变量是否设置正确，以及该文件是否存在。"
+                )
+            
+            # 4. 从本地 JSON 文件加载数据
+            #    对于单个JSON文件，datasets库通常会将其加载为默认的 'train' split
+            _data = load_dataset('json', data_files=local_file_path, split='train')
+            
             self.data = [Example(**d) for d in _data]
 
+# ... 你的其他代码 ...
         else:
             logger.error('Please make sure the path is a valid local file path or a huggingface dataset path. For local files, we support the following types: json, jsonl, csv, xlsx, parquet. For huggingface datasets, we now only support the datasets in the "thu-coai/AISafetyLab_Datasets" repository. Please open an issue if you want to use other datasets.')
             raise NotImplementedError(

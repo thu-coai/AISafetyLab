@@ -69,6 +69,14 @@ class AttackData:
             target_responses=deepcopy(self.target_responses),
             eval_results=deepcopy(self.eval_results),
             attack_attrs=deepcopy(self.attack_attrs),
+            _data=deepcopy(self._data),
+            query=deepcopy(self.query),
+            jailbreak_prompt=deepcopy(self.jailbreak_prompt),
+            reference_responses=deepcopy(self.reference_responses),
+            jailbreak_prompts=deepcopy(self.jailbreak_prompts),
+            target_responses=deepcopy(self.target_responses),
+            eval_results=deepcopy(self.eval_results),
+            attack_attrs=deepcopy(self.attack_attrs),
         )
 
 @dataclass
@@ -330,10 +338,12 @@ class PAIRManager(BaseAttackManager):
         self.current_query: int = 0
         self.current_jailbreak: int = 0
         self.current_reject: int = 0
-        self.attack_system_message, self.attack_seed = InitTemplates().get_templates(
-            name="PAIR",
-            num=2
-        )
+        # 加载所有4个模板
+        all_templates = InitTemplates().get_templates(name="PAIR", num=-1)
+        # 前3个是系统策略
+        self.system_prompt_templates = all_templates[:3]
+        # 最后1个是种子Prompt
+        self.attack_seed = all_templates[3]
 
     def extract_json(self, s):
         r"""
@@ -344,7 +354,7 @@ class PAIRManager(BaseAttackManager):
         """
 
         # print("s:", s)
-        logger.debug(f'text before json parsing: {s}')
+        # logger.debug(f'text before json parsing: {s}')
 
         start_pos = s.find("{")
         end_pos = s.find("}") + 1  # +1 to include the closing brace
@@ -378,18 +388,34 @@ class PAIRManager(BaseAttackManager):
         :return: ~Example: The instance with the jailbreak result saved in its eval_results.
         """
 
-        ##print(f"Processing instance: {instance}")
+        # 这是新的代码块
+        batch = []
+        num_strategies = len(self.system_prompt_templates)
 
-        instance.jailbreak_prompt = self.attack_seed.format(query=instance.query,
-                                                            reference_responses=instance.target)
-        self.attack_model.set_system_message(self.attack_system_message.format(query=instance.query,
-                                                                               reference_responses=
-                                                                               instance.target))
+        for i in range(self.config.n_streams):
+            # 为每个攻击流创建一个独立的深拷贝实例，确保互不干扰
+            stream_instance = deepcopy(instance)
 
-        instance.attack_attrs.update({
-            'attack_conversation': copy.deepcopy(self.attack_model.conversation)}
-        )
-        batch = [copy.deepcopy(instance) for _ in range(self.config.n_streams)]
+            # 使用取模运算符(%)来循环选择攻击策略
+            strategy_template = self.system_prompt_templates[i % num_strategies]
+
+            # 将当前实例的 query 和 target 填入策略模板
+            system_prompt = strategy_template.format(query=stream_instance.query, reference_responses=stream_instance.target)
+
+            # 为当前攻击流创建一个全新的、独立的对话历史对象
+            stream_conversation = deepcopy(self.attack_model.conversation)
+            stream_conversation.set_system_message(system_prompt)
+
+            # 设置初始的用户消息（即种子Prompt）
+            stream_instance.jailbreak_prompt = self.attack_seed.format(query=stream_instance.query,
+                                                                        reference_responses=stream_instance.target)
+
+            # 将这个独一无二的对话历史对象存入当前流的属性中
+            stream_instance.attack_attrs.update({
+                'attack_conversation': stream_conversation
+            })
+
+            batch.append(stream_instance)
 
         for iteration in range(1, self.config.n_iterations + 1):
             logger.info(f"Iteration {iteration} started")
@@ -424,7 +450,7 @@ class PAIRManager(BaseAttackManager):
                         # logger.debug(f'Generated jailbreak prompt: {new_prompt}')
                         stream.jailbreak_prompt = new_prompt
                         stream.attack_attrs['attack_conversation'].append_message(
-                    stream.attack_attrs['attack_conversation'].roles[1], json_str)
+                        stream.attack_attrs['attack_conversation'].roles[1], json_str)
                         # stream.attack_attrs['attack_conversation'].update_last_message(json_str)
                         break
 
