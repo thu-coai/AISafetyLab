@@ -100,8 +100,10 @@ class LocalModel(Model):
         if device:
             self.device = device
         else:
-            self.device = next(self.model.parameters()).device
-        logger.info(f'model device: {next(self.model.parameters()).device}, self.device: {self.device}')
+            if not vllm_mode:
+                self.device = next(self.model.parameters()).device
+            else:
+                self.device = self.model.llm_engine.device_config.device
             
     def transfer_generation_config_to_vllm(self, generation_config):
         removed_keys = set(['do_sample'])
