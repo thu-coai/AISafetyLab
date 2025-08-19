@@ -68,15 +68,7 @@ class AttackData:
             jailbreak_prompts=deepcopy(self.jailbreak_prompts),
             target_responses=deepcopy(self.target_responses),
             eval_results=deepcopy(self.eval_results),
-            attack_attrs=deepcopy(self.attack_attrs),
-            _data=deepcopy(self._data),
-            query=deepcopy(self.query),
-            jailbreak_prompt=deepcopy(self.jailbreak_prompt),
-            reference_responses=deepcopy(self.reference_responses),
-            jailbreak_prompts=deepcopy(self.jailbreak_prompts),
-            target_responses=deepcopy(self.target_responses),
-            eval_results=deepcopy(self.eval_results),
-            attack_attrs=deepcopy(self.attack_attrs),
+            attack_attrs=deepcopy(self.attack_attrs)
         )
 
 @dataclass
