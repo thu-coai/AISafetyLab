@@ -29,24 +29,26 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
                     chat_messages.append({"role": role, "content": message})
                 prompt = object.apply_chat_template(chat_messages)
 
-        inputs = object.tokenizer(prompt,
-                                  return_tensors='pt',
-                                  add_special_tokens=False)
-        input_ids = inputs.input_ids.to(object.model.device.index)
-        attention_mask = inputs.attention_mask.to(object.model.device.index)
-        input_length = len(input_ids[0])
+        # inputs = object.tokenizer(prompt,
+        #                           return_tensors='pt',
+        #                           add_special_tokens=False)
+        # input_ids = inputs.input_ids.to(object.model.device.index)
+        # attention_mask = inputs.attention_mask.to(object.model.device.index)
+        # input_length = len(input_ids[0])
 
-        # 设置生成所需的参数
-        generate_kwargs = {
-            'input_ids': input_ids,
-            'attention_mask': attention_mask,
-            'pad_token_id': object.tokenizer.pad_token_id
-        }
-        gen_config = object.generation_config
-        gen_config.update(kwargs)
-        # logger.debug(f'Generation config: {gen_config}')
-        output_ids = object.model.generate(**generate_kwargs, **gen_config)
-        output = object.tokenizer.decode(output_ids[0][input_length:], skip_special_tokens=True)
+        # # 设置生成所需的参数
+        # generate_kwargs = {
+        #     'input_ids': input_ids,
+        #     'attention_mask': attention_mask,
+        #     'pad_token_id': object.tokenizer.pad_token_id
+        # }
+        # gen_config = object.generation_config
+        # gen_config.update(kwargs)
+        # # logger.debug(f'Generation config: {gen_config}')
+        # output_ids = object.model.generate(**generate_kwargs, **gen_config)
+        # output = object.tokenizer.decode(output_ids[0][input_length:], skip_special_tokens=True)
+        
+        output = object.chat(prompt, use_chat_template=False, **kwargs)
 
     elif isinstance(object, OpenAIModel):
         # OpenAI模型处理
