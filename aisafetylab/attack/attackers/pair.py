@@ -61,14 +61,14 @@ class AttackData:
     def __deepcopy__(self, memo):
         # Create a new instance of AttackData with a copy of the _data dictionary
         return AttackData(
-            _data=self._data.copy(),
-            query=self.query,
-            jailbreak_prompt=self.jailbreak_prompt,
-            reference_responses=self.reference_responses.copy(),
-            jailbreak_prompts=self.jailbreak_prompts.copy(),
-            target_responses=self.target_responses.copy(),
-            eval_results=self.eval_results.copy(),
-            attack_attrs=self.attack_attrs.copy(),
+            _data=deepcopy(self._data),
+            query=deepcopy(self.query),
+            jailbreak_prompt=deepcopy(self.jailbreak_prompt),
+            reference_responses=deepcopy(self.reference_responses),
+            jailbreak_prompts=deepcopy(self.jailbreak_prompts),
+            target_responses=deepcopy(self.target_responses),
+            eval_results=deepcopy(self.eval_results),
+            attack_attrs=deepcopy(self.attack_attrs),
         )
 
 @dataclass
@@ -392,10 +392,9 @@ class PAIRManager(BaseAttackManager):
         batch = [copy.deepcopy(instance) for _ in range(self.config.n_streams)]
 
         for iteration in range(1, self.config.n_iterations + 1):
-            print('')
             logger.info(f"Iteration {iteration} started")
 
-            for stream in batch:
+            for stream_idx, stream in enumerate(batch):
                 if iteration == 1:
                     init_message = """{\"improvement\": \"\",\"prompt\": \""""
                     add_to_conv = stream.jailbreak_prompt
@@ -412,7 +411,7 @@ class PAIRManager(BaseAttackManager):
                 prompt_gen_jailbreak_prompt = stream.attack_attrs['attack_conversation'].to_openai_api_messages()
 
                 for attack_try in range(self.config.max_n_attack_attempts):
-                    # logger.debug(f'Prompt for generating jailbreak prompt: {prompt_gen_jailbreak_prompt}')
+                    logger.debug(f'iteration {iteration}, stream {stream_idx}, try {attack_try}, Prompt for generating jailbreak prompt: {prompt_gen_jailbreak_prompt}')
                     new_instance = self.mutator.mutations[0](jailbreak_dataset=AttackDataset([stream]),
                                                      prompt_format=prompt_gen_jailbreak_prompt)[0]
                     self.attack_model.conversation.messages = []  # clear the conversation history generated during mutation.
@@ -424,7 +423,9 @@ class PAIRManager(BaseAttackManager):
                     if new_prompt is not None:
                         # logger.debug(f'Generated jailbreak prompt: {new_prompt}')
                         stream.jailbreak_prompt = new_prompt
-                        stream.attack_attrs['attack_conversation'].update_last_message(json_str)
+                        stream.attack_attrs['attack_conversation'].append_message(
+                    stream.attack_attrs['attack_conversation'].roles[1], json_str)
+                        # stream.attack_attrs['attack_conversation'].update_last_message(json_str)
                         break
 
                     if attack_try == self.config.max_n_attack_attempts - 1:
