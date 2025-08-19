@@ -100,7 +100,7 @@ class LocalModel(Model):
         if device:
             self.device = device
         else:
-            self.device = next(self.model.parameters()).device
+            self.device = 'cuda'
             
     def transfer_generation_config_to_vllm(self, generation_config):
         removed_keys = set(['do_sample'])
