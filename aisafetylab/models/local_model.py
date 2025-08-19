@@ -2,6 +2,9 @@ from fastchat.conversation import get_conv_template
 from loguru import logger
 from tqdm import trange
 import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from vllm import SamplingParams
+from vllm import LLM as VLLM
 import numpy as np
 from .base_model import Model
 from .sequence import *
@@ -25,11 +28,35 @@ from aisafetylab.utils import (
 
 
 class LocalModel(Model):
-    def __init__(self, model, tokenizer, model_name, generation_config=None):
-        self.model = model
-        self.tokenizer = tokenizer
+    def __init__(self, model=None, tokenizer=None, model_name=None, generation_config=None, model_path=None, tokenizer_path=None, device=None, vllm_mode=False):
+        if model is not None:
+            self.model = model
+        else:
+            assert model_path is not None, "model_path must be provided if model is not given"
+            if vllm_mode:
+                if device is None:
+                    self.model = VLLM(model_path)
+                else:
+                    self.model = VLLM(model_path, device=device)
+            else:
+                if device is None:
+                    self.model = AutoModelForCausalLM.from_pretrained(model_path).to('cuda').eval()
+                else:
+                    self.model = AutoModelForCausalLM.from_pretrained(model_path).to(device).eval()
+        
+        if tokenizer is not None: 
+            self.tokenizer = tokenizer
+        else:
+            if tokenizer_path is None:
+                tokenizer_path = model_path
+                logger.warning("tokenizer_path is not provided, using model_path as tokenizer_path")
+            self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, padding_side='left', trust_remote_code=True)
+        
+        self.vllm_mode = vllm_mode
+        logger.info(f'Using VLLM mode: {self.vllm_mode}')
         self.model_name = model_name
         if self.tokenizer.pad_token is None:
+            logger.warning("tokenizer's pad_token is None, setting pad_token to eos_token")
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.pos_to_token_dict = {v: k.replace('▁', ' ') for k, v in self.tokenizer.get_vocab().items()}
         # self.pos_to_token_dict = {v: k for k, v in self.tokenizer.get_vocab().items()}
@@ -41,7 +68,7 @@ class LocalModel(Model):
             if 'vicuna' in model_name:
                 _model_name = 'vicuna_v1.1'
             self.conversation = get_conv_template(_model_name)
-        except KeyError:
+        except:
             logger.warning("using default conversation template")
 
         if model_name == 'llama-2':
@@ -51,10 +78,48 @@ class LocalModel(Model):
             self.conversation.roles = tuple(['### ' + r for r in self.conversation.template.roles])
             self.conversation.sep = '\n'
 
-        if generation_config is None:
-            generation_config = {}
-        self.generation_config = generation_config
-        self.device = next(self.model.parameters()).device
+        if not vllm_mode:
+            if generation_config is None:
+                generation_config = {}
+            self.generation_config = generation_config
+
+        else:
+            if generation_config is None:
+                self.generation_config = SamplingParams()
+            else:
+                if isinstance(generation_config, SamplingParams):
+                    self.generation_config = generation_config
+                else:
+                    # handle incorrect keys
+                    # removed keys
+                    generation_config = self.transfer_generation_config_to_vllm(generation_config)
+                    self.generation_config = SamplingParams(**generation_config)
+        
+        # check this for multi gpu scenario
+        # self.device = next(self.model.parameters()).device
+        if device:
+            self.device = device
+        else:
+            self.device = 'cuda'
+            
+    def transfer_generation_config_to_vllm(self, generation_config):
+        removed_keys = set(['do_sample'])
+        change_name_keys = {'max_new_tokens': 'max_tokens'}
+        new_generation_config = {}
+        for k, v in generation_config.items():
+            if k == 'top_k' and v == 0:
+                logger.info('Change top_k from 0 to -1 for VLLM')
+                new_generation_config['top_k'] = -1
+            elif k in removed_keys:
+                logger.info(f'Remove sampling parameter "{k}" as it is not used in VLLM')
+                continue
+            elif k in change_name_keys:
+                logger.info(f'Change sampling parameter "{k}" to "{change_name_keys[k]}" for VLLM')
+                new_generation_config[change_name_keys[k]] = v
+            else:
+                new_generation_config[k] = v
+        
+        return new_generation_config
 
     def set_system_message(self, system_message: str):
         """
@@ -236,32 +301,55 @@ class LocalModel(Model):
         return ppls
             
 
-    def batch_chat(self, batch_messages, batch_size=8, skip_special_tokens=True, **kwargs):
+    def batch_chat(self, batch_messages, batch_size=8, skip_special_tokens=True, use_tqdm=True, **kwargs):
         prompts = []
         for messages in batch_messages:
             prompt = self.apply_chat_template(messages)
             prompts.append(prompt)
 
         responses = []
-        temp_generation_config = self.generation_config.copy()
         
-        if "generation_config" in kwargs:
-            temp_generation_config = kwargs["generation_config"]
+        if self.vllm_mode:
+            if "sampling_params" in kwargs:
+                temp_generation_config = kwargs["sampling_params"]
+            else:
+                temp_generation_config = self.generation_config.clone()
+                kwargs = self.transfer_generation_config_to_vllm(kwargs)
+                for k in kwargs:
+                    if k in self.generation_config.__annotations__.keys():
+                        setattr(temp_generation_config, k, kwargs[k])
+                        
+            # logger.debug(f'input_texts: {input_texts}')
+
+            outputs = self.model.generate(prompts, temp_generation_config, use_tqdm=use_tqdm)
+            responses = [output.outputs[0].text for output in outputs]
+            
         else:
-            temp_generation_config = self.generation_config.copy()
-            for k in kwargs:
-                if k in self.generation_config.keys():
-                    setattr(temp_generation_config, k, kwargs[k])
         
-        for i in trange(0, len(prompts), batch_size):
-            batch_prompts = prompts[i:i + batch_size]
-            # logger.debug(f'batch_prompts: {batch_prompts}')
-            inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True, add_special_tokens=False).to(self.device)
-            out = self.model.generate(**inputs, **temp_generation_config)
-            for j, input_ids in enumerate(inputs["input_ids"]):
-                # logger.debug(f'complete gen: {self.tokenizer.decode(out[j], skip_special_tokens=True)}')
-                response = self.tokenizer.decode(out[j][len(input_ids):], skip_special_tokens=skip_special_tokens)
-                responses.append(response)
+            temp_generation_config = self.generation_config.copy()
+            
+            if "generation_config" in kwargs:
+                temp_generation_config = kwargs["generation_config"]
+            else:
+                temp_generation_config = self.generation_config.copy()
+                for k in kwargs:
+                    if k in self.generation_config.keys():
+                        setattr(temp_generation_config, k, kwargs[k])
+                        
+            if use_tqdm:
+                bar = trange(0, len(prompts), batch_size)
+            else:
+                bar = range(0, len(prompts), batch_size)
+            
+            for i in bar:
+                batch_prompts = prompts[i:i + batch_size]
+                # logger.debug(f'batch_prompts: {batch_prompts}')
+                inputs = self.tokenizer(batch_prompts, return_tensors='pt', padding=True, add_special_tokens=False).to(self.device)
+                out = self.model.generate(**inputs, **temp_generation_config)
+                for j, input_ids in enumerate(inputs["input_ids"]):
+                    # logger.debug(f'complete gen: {self.tokenizer.decode(out[j], skip_special_tokens=True)}')
+                    response = self.tokenizer.decode(out[j][len(input_ids):], skip_special_tokens=skip_special_tokens)
+                    responses.append(response)
 
         return responses
 
@@ -279,23 +367,38 @@ class LocalModel(Model):
             prompt = self.apply_chat_template(messages)
         else:
             prompt = messages
-            
-        inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=False).to(self.device)
+        
+        if self.vllm_mode:
+            if "sampling_params" in kwargs:
+                temp_generation_config = kwargs["sampling_params"]
+            else:
+                temp_generation_config = self.generation_config.clone()
+                # resolve name conflicts in vllm and transformers
+                kwargs = self.transfer_generation_config_to_vllm(kwargs)
+                for k in kwargs:
+                    if k in self.generation_config.__annotations__.keys():
+                        setattr(temp_generation_config, k, kwargs[k])
 
-        temp_generation_config = self.generation_config.copy()
-        
-        if "generation_config" in kwargs:
-            temp_generation_config = kwargs["generation_config"]
-        else:
-            temp_generation_config = self.generation_config.copy()
-            temp_generation_config.update(kwargs)
-                    
-        # logger.debug(f'Generation config: {temp_generation_config}')
-        
-        with torch.no_grad():
-            out = self.model.generate(**inputs, **temp_generation_config)
+            outputs = self.model.generate([prompt], temp_generation_config)
+            response = outputs[0].outputs[0].text
             
-        response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)
+        else:
+            inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=False).to(self.device)
+
+            temp_generation_config = self.generation_config.copy()
+            
+            if "generation_config" in kwargs:
+                temp_generation_config = kwargs["generation_config"]
+            else:
+                temp_generation_config = self.generation_config.copy()
+                temp_generation_config.update(kwargs)
+                        
+            # logger.debug(f'Generation config: {temp_generation_config}')
+            
+            with torch.no_grad():
+                out = self.model.generate(**inputs, **temp_generation_config)
+                
+            response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=True)
         # response = self.tokenizer.decode(out[0][len(inputs["input_ids"][0]):], skip_special_tokens=False)
 
         return response

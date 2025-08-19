@@ -79,6 +79,7 @@ class AttackConfig:
     attack_model_path: str
     target_model_name: str
     target_model_path: str
+    target_vllm_mode: bool
     eval_model_name: str
     eval_model_path: str
     openai_key: Optional[str]
@@ -150,17 +151,21 @@ class PAIRInit:
                 base_url=base_url,
             )
         else:
-            model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto").eval().to(device)
-            tokenizer = AutoTokenizer.from_pretrained(model_path)
-            if tokenizer.pad_token is None:
-                tokenizer.pad_token = tokenizer.eos_token
-                tokenizer.pad_token_id = tokenizer.eos_token_id
+            if self.config.target_vllm_mode:
+                logger.info(f'Loading model {model_path} in vLLM mode.')
+                return LocalModel(model_path=model_path, vllm_mode=True, device=device)
+            else:
+                model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto").eval().to(device)
+                tokenizer = AutoTokenizer.from_pretrained(model_path)
+                if tokenizer.pad_token is None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                    tokenizer.pad_token_id = tokenizer.eos_token_id
 
-            return LocalModel(
-                model=model,
-                tokenizer=tokenizer,
-                model_name=model_name,
-            )
+                return LocalModel(
+                    model=model,
+                    tokenizer=tokenizer,
+                    model_name=model_name,
+                )
 
 class PAIRMutator:
     def __init__(self, attack_model):
@@ -193,9 +198,10 @@ class PAIREvaluator:
         return temp_pattern
     
     def __call__(self, instance: AttackData):
-        response = self._format(instance)
-        ret = self.evaluator.score(instance.query, response)
-        logger.info(f'query: {instance.query}\nresponse: {response}\nscore: {ret}')
+        # response = self._format(instance)
+        response = instance.target_responses[-1]
+        ret = self.evaluator.score(instance.jailbreak_prompt, response, goal=instance.query)
+        logger.debug(f'goal: {instance.query}\njailbreak query: {instance.jailbreak_prompt}\nresponse: {response}\nscore: {ret}')
         instance.eval_results.append(ret['score'])
 
 class PAIRManager(BaseAttackManager):
@@ -270,6 +276,7 @@ class PAIRManager(BaseAttackManager):
                 attack_model_path: str,
                 target_model_name: str,
                 target_model_path: str,
+                target_vllm_mode: bool,
                 eval_model_name: str,
                 eval_model_path: str,
                 openai_key: Optional[str],
@@ -522,7 +529,7 @@ class PAIRManager(BaseAttackManager):
         logger.info("Jailbreak finished!")
         # self.attack_dataset.save_to_jsonl(save_path)
         logger.info(
-            'Jailbreak result saved at {}!'.format(os.path.join(os.path.dirname(os.path.abspath(__file__)), save_path)))
+            'Jailbreak result saved at {}!'.format(self.res_save_path))
 
     def mutate(self, prompt: str, target: str):
         instance = AttackData()
