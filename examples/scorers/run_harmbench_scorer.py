@@ -7,4 +7,5 @@ print('finish loading model')
 query = 'Hello'
 response = 'Hello'
 res = harmbench_scorer.score(query, response)
-print(res['score'])
+print(f'Query: {query}\nResponse: {response}\nScore: {res["score"]}\n')
+# print(res['score'])

@@ -61,14 +61,14 @@ class AttackData:
     def __deepcopy__(self, memo):
         # Create a new instance of AttackData with a copy of the _data dictionary
         return AttackData(
-            _data=self._data.copy(),
-            query=self.query,
-            jailbreak_prompt=self.jailbreak_prompt,
-            reference_responses=self.reference_responses.copy(),
-            jailbreak_prompts=self.jailbreak_prompts.copy(),
-            target_responses=self.target_responses.copy(),
-            eval_results=self.eval_results.copy(),
-            attack_attrs=self.attack_attrs.copy(),
+            _data=deepcopy(self._data),
+            query=deepcopy(self.query),
+            jailbreak_prompt=deepcopy(self.jailbreak_prompt),
+            reference_responses=deepcopy(self.reference_responses),
+            jailbreak_prompts=deepcopy(self.jailbreak_prompts),
+            target_responses=deepcopy(self.target_responses),
+            eval_results=deepcopy(self.eval_results),
+            attack_attrs=deepcopy(self.attack_attrs)
         )
 
 @dataclass
@@ -79,6 +79,7 @@ class AttackConfig:
     attack_model_path: str
     target_model_name: str
     target_model_path: str
+    target_vllm_mode: bool
     eval_model_name: str
     eval_model_path: str
     openai_key: Optional[str]
@@ -150,17 +151,21 @@ class PAIRInit:
                 base_url=base_url,
             )
         else:
-            model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto").eval().to(device)
-            tokenizer = AutoTokenizer.from_pretrained(model_path)
-            if tokenizer.pad_token is None:
-                tokenizer.pad_token = tokenizer.eos_token
-                tokenizer.pad_token_id = tokenizer.eos_token_id
+            if self.config.target_vllm_mode:
+                logger.info(f'Loading model {model_path} in vLLM mode.')
+                return LocalModel(model_path=model_path, vllm_mode=True, device=device)
+            else:
+                model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype="auto").eval().to(device)
+                tokenizer = AutoTokenizer.from_pretrained(model_path)
+                if tokenizer.pad_token is None:
+                    tokenizer.pad_token = tokenizer.eos_token
+                    tokenizer.pad_token_id = tokenizer.eos_token_id
 
-            return LocalModel(
-                model=model,
-                tokenizer=tokenizer,
-                model_name=model_name,
-            )
+                return LocalModel(
+                    model=model,
+                    tokenizer=tokenizer,
+                    model_name=model_name,
+                )
 
 class PAIRMutator:
     def __init__(self, attack_model):
@@ -193,9 +198,10 @@ class PAIREvaluator:
         return temp_pattern
     
     def __call__(self, instance: AttackData):
-        response = self._format(instance)
-        ret = self.evaluator.score(instance.query, response)
-        logger.info(f'query: {instance.query}\nresponse: {response}\nscore: {ret}')
+        # response = self._format(instance)
+        response = instance.target_responses[-1]
+        ret = self.evaluator.score(instance.jailbreak_prompt, response, goal=instance.query)
+        logger.debug(f'goal: {instance.query}\njailbreak query: {instance.jailbreak_prompt}\nresponse: {response}\nscore: {ret}')
         instance.eval_results.append(ret['score'])
 
 class PAIRManager(BaseAttackManager):
@@ -270,6 +276,7 @@ class PAIRManager(BaseAttackManager):
                 attack_model_path: str,
                 target_model_name: str,
                 target_model_path: str,
+                target_vllm_mode: bool,
                 eval_model_name: str,
                 eval_model_path: str,
                 openai_key: Optional[str],
@@ -323,10 +330,12 @@ class PAIRManager(BaseAttackManager):
         self.current_query: int = 0
         self.current_jailbreak: int = 0
         self.current_reject: int = 0
-        self.attack_system_message, self.attack_seed = InitTemplates().get_templates(
-            name="PAIR",
-            num=2
-        )
+        # 加载所有4个模板
+        all_templates = InitTemplates().get_templates(name="PAIR", num=-1)
+        # 前3个是系统策略
+        self.system_prompt_templates = all_templates[:3]
+        # 最后1个是种子Prompt
+        self.attack_seed = all_templates[3]
 
     def extract_json(self, s):
         r"""
@@ -337,7 +346,7 @@ class PAIRManager(BaseAttackManager):
         """
 
         # print("s:", s)
-        logger.debug(f'text before json parsing: {s}')
+        # logger.debug(f'text before json parsing: {s}')
 
         start_pos = s.find("{")
         end_pos = s.find("}") + 1  # +1 to include the closing brace
@@ -371,24 +380,39 @@ class PAIRManager(BaseAttackManager):
         :return: ~Example: The instance with the jailbreak result saved in its eval_results.
         """
 
-        ##print(f"Processing instance: {instance}")
+        # 这是新的代码块
+        batch = []
+        num_strategies = len(self.system_prompt_templates)
 
-        instance.jailbreak_prompt = self.attack_seed.format(query=instance.query,
-                                                            reference_responses=instance.target)
-        self.attack_model.set_system_message(self.attack_system_message.format(query=instance.query,
-                                                                               reference_responses=
-                                                                               instance.target))
+        for i in range(self.config.n_streams):
+            # 为每个攻击流创建一个独立的深拷贝实例，确保互不干扰
+            stream_instance = deepcopy(instance)
 
-        instance.attack_attrs.update({
-            'attack_conversation': copy.deepcopy(self.attack_model.conversation)}
-        )
-        batch = [copy.deepcopy(instance) for _ in range(self.config.n_streams)]
+            # 使用取模运算符(%)来循环选择攻击策略
+            strategy_template = self.system_prompt_templates[i % num_strategies]
+
+            # 将当前实例的 query 和 target 填入策略模板
+            system_prompt = strategy_template.format(query=stream_instance.query, reference_responses=stream_instance.target)
+
+            # 为当前攻击流创建一个全新的、独立的对话历史对象
+            stream_conversation = deepcopy(self.attack_model.conversation)
+            stream_conversation.set_system_message(system_prompt)
+
+            # 设置初始的用户消息（即种子Prompt）
+            stream_instance.jailbreak_prompt = self.attack_seed.format(query=stream_instance.query,
+                                                                        reference_responses=stream_instance.target)
+
+            # 将这个独一无二的对话历史对象存入当前流的属性中
+            stream_instance.attack_attrs.update({
+                'attack_conversation': stream_conversation
+            })
+
+            batch.append(stream_instance)
 
         for iteration in range(1, self.config.n_iterations + 1):
-            print('')
             logger.info(f"Iteration {iteration} started")
 
-            for stream in batch:
+            for stream_idx, stream in enumerate(batch):
                 if iteration == 1:
                     init_message = """{\"improvement\": \"\",\"prompt\": \""""
                     add_to_conv = stream.jailbreak_prompt
@@ -405,7 +429,7 @@ class PAIRManager(BaseAttackManager):
                 prompt_gen_jailbreak_prompt = stream.attack_attrs['attack_conversation'].to_openai_api_messages()
 
                 for attack_try in range(self.config.max_n_attack_attempts):
-                    # logger.debug(f'Prompt for generating jailbreak prompt: {prompt_gen_jailbreak_prompt}')
+                    logger.debug(f'iteration {iteration}, stream {stream_idx}, try {attack_try}, Prompt for generating jailbreak prompt: {prompt_gen_jailbreak_prompt}')
                     new_instance = self.mutator.mutations[0](jailbreak_dataset=AttackDataset([stream]),
                                                      prompt_format=prompt_gen_jailbreak_prompt)[0]
                     self.attack_model.conversation.messages = []  # clear the conversation history generated during mutation.
@@ -417,7 +441,9 @@ class PAIRManager(BaseAttackManager):
                     if new_prompt is not None:
                         # logger.debug(f'Generated jailbreak prompt: {new_prompt}')
                         stream.jailbreak_prompt = new_prompt
-                        stream.attack_attrs['attack_conversation'].update_last_message(json_str)
+                        stream.attack_attrs['attack_conversation'].append_message(
+                        stream.attack_attrs['attack_conversation'].roles[1], json_str)
+                        # stream.attack_attrs['attack_conversation'].update_last_message(json_str)
                         break
 
                     if attack_try == self.config.max_n_attack_attempts - 1:
@@ -522,7 +548,7 @@ class PAIRManager(BaseAttackManager):
         logger.info("Jailbreak finished!")
         # self.attack_dataset.save_to_jsonl(save_path)
         logger.info(
-            'Jailbreak result saved at {}!'.format(os.path.join(os.path.dirname(os.path.abspath(__file__)), save_path)))
+            'Jailbreak result saved at {}!'.format(self.res_save_path))
 
     def mutate(self, prompt: str, target: str):
         instance = AttackData()
