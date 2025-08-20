@@ -56,7 +56,7 @@ class OpenAIModel(Model):
             temp_gen_config.update(kwargs)
         while cur < max_try:
             try:
-                logger.debug(f"model_name: {self.model_name}, messages: {self.conversation.to_openai_api_messages()}")
+                # logger.debug(f"model_name: {self.model_name}, messages: {self.conversation.to_openai_api_messages()}")
 
                 response = self.client.chat.completions.create(
                     model=self.model_name,

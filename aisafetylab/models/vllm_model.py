@@ -55,12 +55,12 @@ class VLLMModel(Model):
                 self.generation_config = SamplingParams(**generation_config)
 
 
-    def apply_chat_template(self, messages):
+    def apply_chat_template(self, messages, force_prefill=False):
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
         
         prefill = False
-        if messages[-1]['role'] == 'assistant':
+        if messages[-1]['role'] == 'assistant' or force_prefill:
             prefill = True
         
         try:
@@ -93,12 +93,14 @@ class VLLMModel(Model):
         
         if self.tokenizer.bos_token and not prompt.startswith(self.tokenizer.bos_token):
             prompt = self.tokenizer.bos_token + prompt
-            
+        
+        logger.info(f'prompt before check prefill: {prompt}')
         if prefill:
             if self.tokenizer.eos_token and prompt.strip().endswith(self.tokenizer.eos_token):
                 idx = prompt.rindex(self.tokenizer.eos_token)
                 prompt = prompt[:idx].rstrip()
-            
+                logger.info(f'prompt after check prefill: {prompt}')
+
         return prompt
     
     def chat(self, messages, use_tqdm=True, **kwargs):
@@ -123,7 +125,7 @@ class VLLMModel(Model):
         generated_text = outputs[0].outputs[0].text
         return generated_text
         
-    def batch_chat(self, batch_messages, use_tqdm=True, **kwargs):
+    def batch_chat(self, batch_messages, use_tqdm=True, force_prefill=False, **kwargs):
         # print(f'get into batch_chat')
         input_texts = []
         for messages in batch_messages:
@@ -134,7 +136,7 @@ class VLLMModel(Model):
                         "content": messages
                     }
                 ]
-            input_text = self.apply_chat_template(messages)
+            input_text = self.apply_chat_template(messages, force_prefill=force_prefill)
             input_texts.append(input_text)
             
         if "sampling_params" in kwargs:
