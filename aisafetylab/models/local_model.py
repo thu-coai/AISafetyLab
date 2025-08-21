@@ -384,6 +384,7 @@ class LocalModel(Model):
 
             outputs = self.model.generate([prompt], temp_generation_config)
             response = outputs[0].outputs[0].text
+            logger.debug(f'In LocalModel chat, using vllm_mode. Prompt: {prompt}\nResponse: {response}')
             
         else:
             inputs = self.tokenizer([prompt], return_tensors='pt', add_special_tokens=False).to(self.device)

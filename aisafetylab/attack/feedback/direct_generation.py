@@ -10,6 +10,7 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
     if isinstance(object, LocalModel):
         # 检查是否有conversation属性，如果有则使用传统方式
         if hasattr(object, 'conversation') and hasattr(object.conversation, 'messages'):
+            logger.debug('Using fschat template for local model generation...')
             object.conversation.messages = []
             for index, message in enumerate(messages):
                 object.conversation.append_message(object.conversation.roles[index % 2], message)
@@ -19,6 +20,7 @@ def generate(object, messages, input_field_name='input_ids', **kwargs):
             prompt = object.conversation.get_prompt()
         else:
             # 使用apply_chat_template方法处理新模型
+            logger.debug('Using apply_chat_template for local model generation...')
             if len(messages) == 1:
                 prompt = object.apply_chat_template([{"role": "user", "content": messages[0]}])
             else:
