@@ -418,7 +418,7 @@ class TAPManager(BaseAttackManager):
                                 'Tree-depth': iteration,
                                 'jailbreak_prompt': ex.jailbreak_prompt,
                                 'query': ex.query,
-                                'response': ex.target_responses,
+                                'response': ex.target_responses[-1] if ex.target_responses else "",
                             },
                         )
 
@@ -440,16 +440,29 @@ class TAPManager(BaseAttackManager):
                             'success': True,
                             'jailbreak_prompt': new_example.jailbreak_prompt,
                             'query': new_example.query,
-                            'response': new_example.target_responses,
+                            'response': new_example.target_responses[-1] if new_example.target_responses else "",
                         },
                         save=True,
                     )
                     self.current_jailbreak += 1
                     break
 
-            if self.data.iteration == self.config.tree_depth:
-                new_example = max(new_dataset, key=lambda ex: ex.eval_results[-1])
-                new_example.eval_results = [0]
+            if self.data.iteration == self.config.tree_depth and not self.data.find_flag:
+                # 如果没有找到成功的攻击，保存得分最高的结果
+                best_example = max(new_dataset, key=lambda ex: ex.eval_results[-1])
+                best_example.eval_results = [0]  # 标记为失败但保存结果
+                self.log(
+                    {
+                        'example_idx': example_idx,
+                        'Tree-depth': self.data.iteration,
+                        'success': False,
+                        'best_score': max(ex.eval_results[-1] for ex in new_dataset),
+                        'jailbreak_prompt': best_example.jailbreak_prompt,
+                        'query': best_example.query,
+                        'response': best_example.target_responses[-1] if best_example.target_responses else "",
+                    },
+                    save=True,
+                )
 
         asr = 100 * self.current_jailbreak / len(self.data.attack_dataset)
         print(f"ASR: {asr}%")
@@ -460,11 +473,16 @@ class TAPManager(BaseAttackManager):
             )
         )
 
+        # 确保返回最佳结果，无论是否成功
         if self.data.find_flag:
+            # 成功情况：返回已保存的成功样本
             return new_example.jailbreak_prompt
         else:
-            new_example = max(new_dataset, key=lambda ex: ex.eval_results[-1])
-            return new_example.jailbreak_prompt
+            # 失败情况：返回得分最高的样本（已在上面保存）
+            if 'best_example' in locals():
+                return best_example.jailbreak_prompt
+            else:
+                return ""
 
     def mutate(self, prompt:str, target:str="Sure, here's"):
         example = Example(query=prompt, target=target)
