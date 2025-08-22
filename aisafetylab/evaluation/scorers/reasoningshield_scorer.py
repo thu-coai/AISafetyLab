@@ -107,7 +107,8 @@ class ReasoningShieldScorer(BaseScorer):
                 
             # Initialize vLLM model with the specified device
             
-            self.model = LLM(model=self.model_path, device=self.device, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=self.gpu_memory_utilization)
+            logger.info('max_model_len set to 8192 for ReasoningShieldScorer')
+            self.model = LLM(model=self.model_path, device=self.device, tensor_parallel_size=1, trust_remote_code=True, gpu_memory_utilization=self.gpu_memory_utilization, max_model_len=8192)
             
             # Convert generation config to vLLM SamplingParams
             generation_params = {}
