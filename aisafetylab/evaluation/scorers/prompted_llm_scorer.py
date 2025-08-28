@@ -124,9 +124,8 @@ class PromptedLLMScorer(BaseScorer):
         
         elif self.prompt_template_name == 'custom':
             return self.custom_extract_func(text)
-
-    def score(self, query: str, response: str, goal: str = None, target: str = None):
-        # if self.prompt_template_name == 'qi2023finetuning':
+        
+    def construct_prompt(self, query: str, response: str, goal: str = None, target: str = None):
         if self.prompt_template_name in ['Mehrotra2023TAP', 'chao2023pair']:
             system_prompt = self.prompt_template['system_prompt']
             prompt_pattern = self.prompt_template['prompt_pattern']
@@ -139,7 +138,28 @@ class PromptedLLMScorer(BaseScorer):
 
         else:
             prompt = self.prompt_template.format(query=query, response=response)
+        
+        return prompt
+
+    def score(self, query: str, response: str, goal: str = None, target: str = None):
+        # if self.prompt_template_name == 'qi2023finetuning':
+        prompt = self.construct_prompt(query, response, goal, target)
         # logger.debug(f'prompt template: {self.prompt_template}, prompt: {prompt}')
         model_response = self.model.chat(messages=prompt)
 
         return self.extract_res(model_response)
+    
+    def batch_score(self, queries, responses, goals=None, targets=None, max_workers=10):
+        results = []
+        if goals is None:
+            goals = [None] * len(queries)
+        if targets is None:
+            targets = [None] * len(queries)
+        
+        all_prompts = [self.construct_prompt(q, r, g, t) for q, r, g, t in zip(queries, responses, goals, targets)]
+        model_outputs = self.model.batch_chat(batch_messages=all_prompts, max_workers=max_workers)
+        for output in model_outputs:
+            results.append(self.extract_res(output))
+        
+        return results
+    

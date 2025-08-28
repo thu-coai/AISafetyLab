@@ -70,3 +70,13 @@ class OverRefusalScorer(BaseScorer):
         model_response = self.model.chat(messages=prompt)
 
         return self.extract_res(model_response)
+
+    def batch_score(self, queries, responses, max_workers=10):
+        results = []
+        all_prompts = [self.prompt_template.format(query=q, response=r) for q, r in zip(queries, responses)]
+        model_outputs = self.model.batch_chat(batch_messages=all_prompts, max_workers=max_workers)
+        for output in model_outputs:
+            results.append(self.extract_res(output))
+        
+        return results
+    
