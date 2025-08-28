@@ -28,6 +28,12 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Error loading configuration file: {e}")
             raise e
+        
+    def update_config(self, **kwargs):
+        for key, value in kwargs.items():
+            if value is not None:
+                logger.debug(f'Updating config: {key} = {value}')
+                self.config[key] = value
 
     def validate_config(self):
         # Validate essential fields are present
