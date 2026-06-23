@@ -425,6 +425,9 @@ Contributions are highly encouraged, so feel free to submit pull requests or pro
 
 #### White-Box Attack
 
+- [2025 / 1] [Jailbreaking LLMs' Safeguard with Universal Magic Words for Text Embedding Models.](https://arxiv.org/abs/2501.18280) Haoyu Liang, ..., Bo Zhang. [Tsinghua University] `arXiv`.
+**TL;DR**: This paper finds that text embedding models concentrate their outputs on a narrow band of the unit sphere and exploits this bias to discover universal "magic word" suffixes that manipulate embedding similarity of arbitrary text pairs, bypassing embedding-based safety guardrails to jailbreak ChatGPT, DeepSeek, Qwen, and iFlytek Spark across languages and models. A training-free debiasing defense is also proposed.
+
 - [2024 / 4] [JAILBREAKING LEADING SAFETY-ALIGNED LLMS WITH SIMPLE ADAPTIVE ATTACKS.](https://arxiv.org/pdf/2404.02151) Maksym Andriushchenko, ..., Nicolas Flammarion. [EPFL]. 
 **TL;DR**: This paper shows that recent safety-aligned LLMs are not robust to simple adaptive jailbreaking attacks. It presents methods like using prompt templates, random search, self-transfer, transfer, and prefilling attacks to achieve high success rates on various models, including those of different companies, and also describes an approach for trojan detection in poisoned models.
 
