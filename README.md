@@ -425,6 +425,9 @@ Contributions are highly encouraged, so feel free to submit pull requests or pro
 
 #### White-Box Attack
 
+- [2025 / 9] [SABER: Uncovering Vulnerabilities in Safety Alignment via Cross-Layer Residual Connection.](https://aclanthology.org/2025.emnlp-main.825/) Maithili Joshi, Palash Nandi, Tanmoy Chakraborty. [IIT Delhi] `EMNLP 2025`.
+**TL;DR**: This paper introduces SABER, a white-box jailbreak that injects a normalized cross-layer residual connection to bypass safety mechanisms concentrated in middle-to-late LLM layers. SABER improves attack success by 51% over GCG on the HarmBench test set while causing only a marginal perplexity shift.
+
 - [2024 / 4] [JAILBREAKING LEADING SAFETY-ALIGNED LLMS WITH SIMPLE ADAPTIVE ATTACKS.](https://arxiv.org/pdf/2404.02151) Maksym Andriushchenko, ..., Nicolas Flammarion. [EPFL]. 
 **TL;DR**: This paper shows that recent safety-aligned LLMs are not robust to simple adaptive jailbreaking attacks. It presents methods like using prompt templates, random search, self-transfer, transfer, and prefilling attacks to achieve high success rates on various models, including those of different companies, and also describes an approach for trojan detection in poisoned models.
 
